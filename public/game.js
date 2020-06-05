@@ -9,9 +9,10 @@ let keyPresses = {};
 
 // 3D
 const renderer = new THREE.WebGLRenderer({ canvas: $("canvas") });
-renderer.background = new THREE.Color(0xff0000);
 
 const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xff0000);
+
 const camera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
 camera.position.y = 5;
 camera.position.z = 10;
