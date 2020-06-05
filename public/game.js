@@ -51,8 +51,9 @@ socket.on("addPlayerEntry", (playerEntry) => {
 });
 
 function setupPlayerEntry(playerEntry) {
-  const box = new THREE.BoxGeometry(1, 1, 1);
-  playerEntry.mesh = new THREE.Mesh(box);
+  const box = new THREE.BoxGeometry(0.3, 0.3, 0.3);
+  const material = new THREE.MeshBasicMaterial({ color: Math.random() * 0xffffff });
+  playerEntry.mesh = new THREE.Mesh(box, material);
   playerEntry.mesh.position.x = playerEntry.id;
   scene.add(playerEntry.mesh);
 }
