@@ -131,5 +131,7 @@ socket.on("removePlayerEntry", (playerId) => {
 
 
 socket.on("movePlayer", (playerId, pos) => {
-  playerEntries.find(x => x.id === playerId).pos = pos;
+  const playerEntry = playerEntries.find(x => x.id === playerId);
+  playerEntry.pos = pos;
+  playerEntries.mesh.position.set(pos[0], pos[1], pos[2]);
 });
