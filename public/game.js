@@ -62,8 +62,6 @@ function animate() {
 animate();
 
 // Input
-renderer.domElement.tabIndex = 0;
-
 renderer.domElement.addEventListener("mousedown", (event) => {
   renderer.domElement.focus();
   event.preventDefault();
