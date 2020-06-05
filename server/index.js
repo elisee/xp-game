@@ -1,9 +1,20 @@
 "use strict";
 
-const server = require("http").createServer();
+const express = require("express");
+
+const app = express();
+
+const server = require("http").createServer(app);
 const io = require("socket.io")(server);
 
+app.use("/three.min.js", express.static(path.resolve(__dirname, "../node_modules/three/build/three.min.js")));
+
 io.on("connect", (socket) => {
+
+  socket.on("joinGame", (callback) => {
+    callback("Bienvenue lol");
+  });
+
   console.log("Socket has connected.");
 });
 

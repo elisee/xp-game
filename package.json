@@ -8,6 +8,8 @@
   },
   "author": "Elisée MAURER <elisee@sparklinlabs.com>",
   "dependencies": {
-    "socket.io": "^2.3.0"
+    "express": "^4.17.1",
+    "socket.io": "^2.3.0",
+    "three": "^0.117.1"
   }
 }

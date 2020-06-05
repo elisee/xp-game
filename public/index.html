@@ -1,8 +1,46 @@
 <!DOCTYPE html>
 <html>
 
+<head>
+  <meta charset="utf8">
+  <title>XP Game</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      padding: 0;
+      margin: 0;
+      font: inherit;
+    }
+
+    *[hidden] {
+      display: none !important;
+    }
+
+    html, body {
+      height: 100%;
+    }
+
+    body {
+      display: flex;
+      align-items: stretch;
+      justify-content: stretch;
+      line-height: 0;
+      overflow: hidden;
+    }
+    
+    canvas {
+      flex: 1;
+    }
+  </style>
+</head>
+
 <body>
-  <h1>This is a better game.</h1>
+  <canvas></canvas>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/three.min.js"></script>
+  <script src="/game.js"></script>
 </body>
 
 </html>
