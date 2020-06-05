@@ -16,6 +16,7 @@ scene.add(directionalLight);
 
 scene.add(new THREE.GridHelper(10, 10));
 
+let canvasClientRect;
 
 function animate() {
   requestAnimationFrame(animate);
