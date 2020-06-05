@@ -33,6 +33,8 @@ io.on("connect", (socket) => {
   });
 
   socket.on("disconnect", () => {
+    if (player == null) return;
+
     playerEntries.splice(playerEntries.indexOf(player.entry), 1);
 
     io.in("game").emit("removePlayerEntry", player.entry.id);
