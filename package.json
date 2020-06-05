@@ -1,0 +1,13 @@
+{
+  "name": "xp-game",
+  "version": "0.1.0",
+  "main": "server/index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/elisee/xp-game.git"
+  },
+  "author": "Elisée MAURER <elisee@sparklinlabs.com>",
+  "dependencies": {
+    "socket.io": "^2.3.0"
+  }
+}
