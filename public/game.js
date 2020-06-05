@@ -59,6 +59,7 @@ animate();
 renderer.domElement.tabIndex = 0;
 
 renderer.domElement.addEventListener("mousedown", (event) => {
+  renderer.domElement.focus();
   event.preventDefault();
 
   if (event.button === 1) {
