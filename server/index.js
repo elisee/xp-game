@@ -20,7 +20,7 @@ io.on("connect", (socket) => {
   let player;
 
   socket.on("joinGame", (callback) => {
-    const entry = { id: nextPlayerId++ };
+    const entry = { id: nextPlayerId++, pos: [0, 0, 0], angle: 0 };
     player = { entry };
 
     playerEntries.push(entry);

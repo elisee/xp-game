@@ -3,6 +3,7 @@
 // Data
 let playerEntries = [];
 
+
 // 3D
 const renderer = new THREE.WebGLRenderer({ canvas: $("canvas") });
 const scene = new THREE.Scene();
@@ -24,15 +25,64 @@ let canvasClientRect;
 function animate() {
   requestAnimationFrame(animate);
 
+  // Update
+  const move = new THREE.Vector3();
+  if (keys.KeyW) move.z -= 1;
+  if (keys.KeyS) move.z += 1;
+
+  if (keys.KeyA) move.x -= 1;
+  if (keys.KeyD) move.x += 1;
+
+  if (move.lengthSq() > 0) {
+    const speed = 0.1;
+    move.normalize().multiplyScalar(speed);
+
+    camera.position.add(move);
+  }
+
+  // Render
   canvasClientRect = renderer.domElement.parentElement.getBoundingClientRect();
   renderer.setSize(canvasClientRect.width, canvasClientRect.height, false);
   camera.aspect = canvasClientRect.width / canvasClientRect.height;
   camera.updateProjectionMatrix();
 
+
   renderer.render(scene, camera);
 }
 
 animate();
+
+// Input
+let keys = {};
+let keyPresses = {};
+
+renderer.domElement.addEventListener("mousedown", (event) => {
+  if (event.button === 1) {
+  }
+});
+
+renderer.domElement.addEventListener("mouseup", (event) => {
+  if (event.button === 1) {
+  }
+});
+
+renderer.domElement.addEventListener("keydown", (event) => {
+  // event.preventDefault();
+
+  keys[event.code] = true;
+  keyPresses[event.code] = true;
+});
+
+renderer.domElement.addEventListener("keyup", (event) => {
+  // event.preventDefault();
+
+  keys[event.code] = false;
+});
+
+renderer.domElement.addEventListener("blur", (event) => {
+  keys = {};
+  keyPresses = {};
+});
 
 // Network
 const socket = io({ reconnection: false, transports: ["websocket"] });
@@ -54,7 +104,8 @@ function setupPlayerEntry(playerEntry) {
   const box = new THREE.BoxGeometry(0.3, 0.3, 0.3);
   const material = new THREE.MeshBasicMaterial({ color: Math.random() * 0xffffff });
   playerEntry.mesh = new THREE.Mesh(box, material);
-  playerEntry.mesh.position.x = playerEntry.id;
+  playerEntry.mesh.position.set(playerEntry.pos[0], playerEntry.pos[1], playerEntry.pos[2]);
+  playerEntry.mesh.rotation.y = playerEntry.angle;
   scene.add(playerEntry.mesh);
 }
 
@@ -65,3 +116,6 @@ socket.on("removePlayerEntry", (playerId) => {
 
   playerEntries.splice(index, 1);
 });
+
+
+
