@@ -1,8 +1,9 @@
 "use strict";
 
-// Data
 let playerEntries = [];
 
+let keys = {};
+let keyPresses = {};
 
 // 3D
 const renderer = new THREE.WebGLRenderer({ canvas: $("canvas") });
@@ -53,9 +54,6 @@ function animate() {
 animate();
 
 // Input
-let keys = {};
-let keyPresses = {};
-
 renderer.domElement.addEventListener("mousedown", (event) => {
   if (event.button === 1) {
   }
