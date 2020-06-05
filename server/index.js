@@ -21,4 +21,4 @@ io.on("connect", (socket) => {
 });
 
 server.listen(4001);
-console.log(`XP Game started.`);
+console.log(`XP_GAME_STARTED`);
