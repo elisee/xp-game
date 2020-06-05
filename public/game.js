@@ -1,6 +1,8 @@
 "use strict";
 
 let playerEntries = [];
+let selfPlayerId = null;
+let selfPlayerEntry = null;
 
 let keys = {};
 let keyPresses = {};
@@ -38,7 +40,8 @@ function animate() {
     const speed = 0.1;
     move.normalize().multiplyScalar(speed);
 
-    camera.position.add(move);
+    // camera.position.add(move);
+    socket.emit("move", [selfPlayerEntry.pos[0] + move.x, selfPlayerEntry.pos[1] + move.y, selfPlayerEntry.pos[2] + move.z]);
   }
 
   keyPresses = {};
@@ -96,6 +99,8 @@ const socket = io({ reconnection: false, transports: ["websocket"] });
 
 socket.emit("joinGame", (data) => {
   playerEntries = data.playerEntries;
+  selfPlayerId = data.selfPlayerId;
+  selfPlayerEntry = playerEntries.find(x => x.id === selfPlayerId);
 
   for (const playerEntry of playerEntries) setupPlayerEntry(playerEntry);
 
@@ -125,4 +130,6 @@ socket.on("removePlayerEntry", (playerId) => {
 });
 
 
-
+socket.on("movePlayer", (playerId, pos) => {
+  playerEntries.find(x => x.id === playerId).pos = pos;
+});

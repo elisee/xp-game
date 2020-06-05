@@ -20,16 +20,25 @@ io.on("connect", (socket) => {
   let player;
 
   socket.on("joinGame", (callback) => {
+    // TODO: Validate callback
+
     const entry = { id: nextPlayerId++, pos: [0, 0, 0], angle: 0 };
     player = { entry };
 
     playerEntries.push(entry);
     playersById[entry.id] = player;
 
-    callback({ playerEntries });
+    callback({ playerEntries, selfPlayerId: entry.id });
 
     io.in("game").emit("addPlayerEntry", entry);
     socket.join("game");
+  });
+
+  socket.on("move", (pos) => {
+    // TODO: Validate pos
+
+    player.entry.pos = pos;
+    io.in("game").emit("movePlayer", player.entry.id, pos);
   });
 
   socket.on("disconnect", () => {
