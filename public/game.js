@@ -41,6 +41,8 @@ function animate() {
     camera.position.add(move);
   }
 
+  keyPresses = {};
+
   // Render
   canvasClientRect = renderer.domElement.parentElement.getBoundingClientRect();
   renderer.setSize(canvasClientRect.width, canvasClientRect.height, false);
@@ -57,11 +59,15 @@ animate();
 renderer.domElement.tabIndex = 0;
 
 renderer.domElement.addEventListener("mousedown", (event) => {
+  event.preventDefault();
+
   if (event.button === 1) {
   }
 });
 
 renderer.domElement.addEventListener("mouseup", (event) => {
+  event.preventDefault();
+
   if (event.button === 1) {
   }
 });
