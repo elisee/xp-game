@@ -1,5 +1,8 @@
 "use strict";
 
+// Data
+let playerEntries = [];
+
 // 3D
 const renderer = new THREE.WebGLRenderer({ canvas: $("canvas") });
 const scene = new THREE.Scene();
@@ -31,10 +34,33 @@ function animate() {
 
 animate();
 
-
 // Network
 const socket = io({ reconnection: false, transports: ["websocket"] });
 
 socket.emit("joinGame", (data) => {
+  playerEntries = data.playerEntries;
+
+  for (const playerEntry of playerEntries) setupPlayerEntry(playerEntry);
+
   $make("div", document.body, { textContent: JSON.stringify(data, null, 2) });
+});
+
+socket.on("addPlayerEntry", (playerEntry) => {
+  setupPlayerEntry(playerEntry);
+  playerEntries.push(playerEntry);
+});
+
+function setupPlayerEntry(playerEntry) {
+  const box = new THREE.BoxGeometry(1, 1, 1);
+  playerEntry.mesh = new THREE.Mesh(box);
+  playerEntries.mesh.position.x = playerEntry.id;
+  scene.add(playerEntry.mesh);
+}
+
+socket.on("removePlayerEntry", (playerId) => {
+  const index = playerEntries.findIndex(x => x.id === playerId);
+  const playerEntry = playerEntries[index];
+  scene.remove(playerEntry.mesh);
+
+  playerEntries.splice(index, 1);
 });
