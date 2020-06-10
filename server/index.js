@@ -186,7 +186,7 @@ function getRandomWord() {
 }
 
 function endGame() {
-  const sortedPlayerEntries = game.playerEntries.sort((a, b) => b.points - a.points);
+  const sortedPlayerEntries = game.playerEntries.slice(0).sort((a, b) => b.points - a.points);
 
   game.milestone = {
     name: "seating",
