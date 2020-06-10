@@ -131,7 +131,7 @@ io.on("connect", (socket) => {
       player.entry.points += 10 * newLettersFound;
       player.entry.correctLetters.push(letter);
 
-      if (!game.milestone.maskedWord.includes("_"))  {
+      if (!game.milestone.maskedWord.includes("_")) {
         player.entry.points += 50;
       }
 

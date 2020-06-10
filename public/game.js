@@ -115,7 +115,11 @@ socket.on("setMilestone", (newMilestone) => {
 
   if (milestone.name === "seating") renderSeating();
   else {
-    for (const playerEntry of playerEntries) playerEntry.points = 0;
+    for (const playerEntry of playerEntries) {
+      playerEntry.points = 0;
+      playerEntry.correctLetters.length = 0;
+      playerEntry.wrongLetters.length = 0;
+    }
     renderScoreboard();
     renderRound();
   }
