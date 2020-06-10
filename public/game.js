@@ -4,135 +4,143 @@ let playerEntries = [];
 let selfPlayerId = null;
 let selfPlayerEntry = null;
 
-let keys = {};
-let keyPresses = {};
+let milestone = {
+  name: "none"
+};
 
-// 3D
-const renderer = new THREE.WebGLRenderer({ canvas: $("canvas") });
-
-const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x222222);
-
-const camera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
-camera.position.y = 5;
-camera.position.z = 10;
-
-const ambientLight = new THREE.AmbientLight(0xaaaaaa); // soft white light
-scene.add(ambientLight);
-
-const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
-directionalLight.position.set(1, 1, 0);
-scene.add(directionalLight);
-
-scene.add(new THREE.GridHelper(10, 10));
-
-let canvasClientRect;
-
-function animate() {
-  requestAnimationFrame(animate);
-
-  // Update
-  const move = new THREE.Vector3();
-  if (keys.KeyW) move.z -= 1;
-  if (keys.KeyS) move.z += 1;
-
-  if (keys.KeyA) move.x -= 1;
-  if (keys.KeyD) move.x += 1;
-
-  if (move.lengthSq() > 0) {
-    const speed = 0.1;
-    move.normalize().multiplyScalar(speed);
-
-    // camera.position.add(move);
-    socket.emit("move", [selfPlayerEntry.pos[0] + move.x, selfPlayerEntry.pos[1] + move.y, selfPlayerEntry.pos[2] + move.z]);
-  }
-
-  keyPresses = {};
-
-  // Render
-  canvasClientRect = renderer.domElement.parentElement.getBoundingClientRect();
-  renderer.setSize(canvasClientRect.width, canvasClientRect.height, false);
-  camera.aspect = canvasClientRect.width / canvasClientRect.height;
-  camera.updateProjectionMatrix();
-
-
-  renderer.render(scene, camera);
-}
-
-animate();
-
-// Input
-renderer.domElement.addEventListener("mousedown", (event) => {
-  renderer.domElement.focus();
-  event.preventDefault();
-
-  if (event.button === 1) {
-  }
-});
-
-renderer.domElement.addEventListener("mouseup", (event) => {
-  event.preventDefault();
-
-  if (event.button === 1) {
-  }
-});
-
-renderer.domElement.addEventListener("keydown", (event) => {
-  // event.preventDefault();
-
-  keys[event.code] = true;
-  keyPresses[event.code] = true;
-});
-
-renderer.domElement.addEventListener("keyup", (event) => {
-  // event.preventDefault();
-
-  keys[event.code] = false;
-});
-
-renderer.domElement.addEventListener("blur", (event) => {
-  keys = {};
-  keyPresses = {};
-});
+const password = localStorage.getItem("hangmanPassword");
 
 // Network
 const socket = io({ reconnection: false, transports: ["websocket"] });
 
-socket.emit("joinGame", (data) => {
+window.addEventListener("message", (event) => {
+  const actualEvent = JSON.parse(event.data);
+
+  if (actualEvent.name === "setUsername") {
+    socket.emit("joinGame", actualEvent.username, password, socket_joinGameCallback);
+  }
+});
+
+socket.emit("joinGame", prompt("username?", "elisee"), password, socket_joinGameCallback);
+
+socket.on("disconnect", () => {
+  document.body.innerHTML = "";
+  document.body.textContent = "Disconnected.";
+})
+
+function socket_joinGameCallback(data) {
+  $hide(".loading");
+
   playerEntries = data.playerEntries;
   selfPlayerId = data.selfPlayerId;
   selfPlayerEntry = playerEntries.find(x => x.id === selfPlayerId);
 
-  for (const playerEntry of playerEntries) setupPlayerEntry(playerEntry);
+  milestone = data.milestone;
+  if (milestone.name === "seating") renderSeating();
+  else renderRound();
 
-  $make("div", document.body, { textContent: JSON.stringify(data, null, 2) });
+  renderScoreboard();
+}
+
+function renderSeating() {
+  $show(".seating");
+  $hide(".round");
+
+  $show(".seating .lastWordContainer", milestone.lastWord != null);
+  if (milestone.lastWord != null) $(".seating .lastWord").textContent = milestone.lastWord;
+
+  $show(".seating .lastWinnerContainer", milestone.lastWinnerUsername != null);
+  if (milestone.lastWinnerUsername != null) $(".seating .lastWinner").textContent = milestone.lastWinnerUsername;
+
+  $show(".seating .host", password != null);
+}
+
+$(".seating .host button").addEventListener("click", (event) => {
+  socket.emit("start");
 });
+
+function renderRound() {
+  $show(".round");
+  $hide(".seating");
+
+  $(".maskedWord").textContent = milestone.maskedWord;
+
+  $(".round .otherTurn .username").textContent = playerEntries.find(x => x.id === milestone.currentPlayerId).username;
+
+  $show(".round .selfTurn", milestone.currentPlayerId === selfPlayerId);
+  $show(".round .otherTurn", milestone.currentPlayerId !== selfPlayerId);
+
+  if (milestone.currentPlayerId === selfPlayerId) $(".round .selfTurn input").focus();
+}
+
+$(".round").addEventListener("click", (event) => {
+  if (milestone.currentPlayerId === selfPlayerId) $(".round .selfTurn input").focus();
+});
+
+function renderScoreboard() {
+  const scoreboardElt = $(".scoreboard");
+  scoreboardElt.innerHTML = "";
+
+  for (const entry of playerEntries) {
+    const isCurrentPlayer = milestone.name === "round" && entry.id === milestone.currentPlayerId;
+
+    const playerDiv = $make("div", scoreboardElt, { className: "player" });
+    const usernameDiv = $make("div", playerDiv, { className: "username", textContent: `${isCurrentPlayer ? "🎈 " : ""}${entry.username}` });
+    const pointsDiv = $make("div", playerDiv, { className: "points", textContent: entry.points });
+    const correctLettersDiv = $make("div", playerDiv, { className: "correctLetters", textContent: entry.correctLetters });
+    const wrongLettersDiv = $make("div", playerDiv, { className: "wrongLetters", textContent: entry.wrongLetters });
+  }
+}
 
 socket.on("addPlayerEntry", (playerEntry) => {
-  setupPlayerEntry(playerEntry);
   playerEntries.push(playerEntry);
-});
 
-function setupPlayerEntry(playerEntry) {
-  const box = new THREE.BoxGeometry(0.3, 0.3, 0.3);
-  const material = new THREE.MeshBasicMaterial({ color: Math.random() * 0xffffff });
-  playerEntry.mesh = new THREE.Mesh(box, material);
-  playerEntry.mesh.position.set(playerEntry.pos[0], playerEntry.pos[1], playerEntry.pos[2]);
-  playerEntry.mesh.rotation.y = playerEntry.angle;
-  scene.add(playerEntry.mesh);
-}
+  renderScoreboard();
+});
 
 socket.on("removePlayerEntry", (playerId) => {
   const index = playerEntries.findIndex(x => x.id === playerId);
-  const playerEntry = playerEntries[index];
-  scene.remove(playerEntry.mesh);
-
   playerEntries.splice(index, 1);
+  renderScoreboard();
+});
+
+socket.on("setMilestone", (newMilestone) => {
+  milestone = newMilestone;
+
+  if (milestone.name === "seating") renderSeating();
+  else {
+    for (const playerEntry of playerEntries) playerEntry.points = 0;
+    renderScoreboard();
+    renderRound();
+  }
 });
 
 
-socket.on("movePlayer", (playerId, pos) => {
-  const playerEntry = playerEntries.find(x => x.id === playerId);
-  playerEntry.pos = pos;
-  playerEntry.mesh.position.set(pos[0], pos[1], pos[2]);
+$(".selfTurn").addEventListener("submit", (event) => {
+  event.preventDefault();
+
+  const letter = $(".selfTurn input").value;
+  $(".selfTurn input").value = "";
+
+  socket.emit("playLetter", letter);
+});
+
+socket.on("playLetter", (data) => {
+  const playerIndex = playerEntries.findIndex(x => x.id === data.playerId);
+  const playerEntry = playerEntries[playerIndex];
+
+  if (data.correct) playerEntry.correctLetters.push(data.letter);
+  else playerEntry.wrongLetters.push(data.letter);
+
+  playerEntry.points = data.points;
+
+  milestone.maskedWord = data.maskedWord;
+
+  if (!data.correct) {
+    const newPlayerIndex = (playerIndex + 1) % playerEntries.length;
+    milestone.currentPlayerId = playerEntries[newPlayerIndex].id;
+  }
+
+  renderScoreboard();
+  renderRound();
 });
