@@ -146,6 +146,11 @@ io.on("connect", (socket) => {
   socket.on("disconnect", () => {
     if (player == null) return;
 
+    if (game.milestone.name === "round" && game.currentPlayerId === player.entry.id) {
+      game.currentPlayerIndex = (game.currentPlayerIndex + 1) % game.playerEntries.length;
+      game.milestone.currentPlayerId = game.playerEntries[game.currentPlayerIndex].id;
+    }
+
     game.playerEntries.splice(game.playerEntries.indexOf(player.entry), 1);
     delete game.playersById[player.entry.id];
 
