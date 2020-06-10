@@ -111,7 +111,7 @@ io.on("connect", (socket) => {
     if (game.milestone.currentPlayerId !== player.entry.id) return console.log("reject not current player");
     if (player.entry.correctLetters.includes(letter) || player.entry.wrongLetters.includes(letter)) return console.log("reject already used by player");
 
-    if (game.milestone.usedLetters.includes(letter)) game.milestone.usedLetters.push(letter);
+    if (!game.milestone.usedLetters.includes(letter)) game.milestone.usedLetters.push(letter);
 
     const foundIndices = [];
     let index = -1;

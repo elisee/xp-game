@@ -66,7 +66,7 @@ function renderRound() {
   $(".alphabet").innerHTML = "";
 
   for (const letter of "abcdefghijklmnopqrstuvwxyz-'") {
-    $make("span", $(".alphabet"), { textContent: letter, className: milestone.usedLetters.includes(letter) ? "used" : "notUsed" })
+    $make("span", $(".alphabet"), { textContent: letter, className: milestone.usedLetters.includes(letter) ? "used" : "notUsed" });
   }
 
   $(".round .otherTurn .username").textContent = playerEntries.find(x => x.id === milestone.currentPlayerId).username;

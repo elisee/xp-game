@@ -78,6 +78,24 @@
       font-size: 2em;
     }
 
+    .round .alphabet {
+      padding: 1em;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .round .alphabet > span {
+      padding: 0.5em;
+      border: 1px solid #777;
+      border-radius: 0.25em;
+      margin: 0.25em;
+    }
+
+    .round .alphabet .used {
+      background: #aaa;
+    }
+
     .round .maskedWordContainer {
       flex: 1;
       padding: 1em;
@@ -105,18 +123,6 @@
       text-align: center;
       padding: 1em;
       text-transform: uppercase;
-    }
-
-    .round .alphabet > .span {
-      padding: 0.5em;
-      border: 1px solid #777;
-      border-radius: 0.25em;
-      margin: 0.25em;
-    }
-
-    .round .alphabet .used {
-      background: #aaa;
-
     }
 
     .scoreboard {
