@@ -101,6 +101,7 @@ io.on("connect", (socket) => {
   });
 
   socket.on("playLetter", (letter) => {
+    if (!validate.string(letter, 1, 1)) return console.log("reject not a string of length 1");
     letter = letter.toLowerCase();
     if (!validate.regex(letter, letterRegex)) return console.log("reject letter");
     if (game.milestone.name !== "round") return console.log("reject not round");
