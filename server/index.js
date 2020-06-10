@@ -104,6 +104,7 @@ io.on("connect", (socket) => {
     };
 
     io.in("game").emit("setMilestone", game.milestone);
+    resetPlayerTimeout();
   });
 
   socket.on("playLetter", (letter) => {
