@@ -130,6 +130,11 @@ io.on("connect", (socket) => {
     if (correct) {
       player.entry.points += 10 * newLettersFound;
       player.entry.correctLetters.push(letter);
+
+      if (!game.milestone.maskedWord.includes("_"))  {
+        player.entry.points += 50;
+      }
+
     } else {
       player.entry.points -= 5;
       player.entry.wrongLetters.push(letter);
@@ -137,6 +142,7 @@ io.on("connect", (socket) => {
       game.currentPlayerIndex = (game.currentPlayerIndex + 1) % game.playerEntries.length;
       game.milestone.currentPlayerId = game.playerEntries[game.currentPlayerIndex].id;
     }
+
 
     io.in("game").emit("playLetter", { playerId: player.entry.id, letter, correct, points: player.entry.points, maskedWord: game.milestone.maskedWord });
 
