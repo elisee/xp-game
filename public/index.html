@@ -107,6 +107,18 @@
       text-transform: uppercase;
     }
 
+    .round .alphabet > .span {
+      padding: 0.5em;
+      border: 1px solid #777;
+      border-radius: 0.25em;
+      margin: 0.25em;
+    }
+
+    .round .alphabet .used {
+      background: #aaa;
+
+    }
+
     .scoreboard {
       width: 300px;
       background: #eee;
@@ -148,6 +160,7 @@
     <div class="host"><button>Start the game</button></div>
   </div>
   <div class="round" hidden>
+    <div class="alphabet"></div>
     <div class="maskedWordContainer">
       <div class="maskedWord"></div>
     </div>

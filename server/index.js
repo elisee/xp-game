@@ -94,6 +94,7 @@ io.on("connect", (socket) => {
     game.milestone = {
       name: "round",
       maskedWord: "_".repeat(game.word.length),
+      usedLetters: [],
       currentPlayerId: game.playerEntries[currentPlayerIndex].id
     };
 
@@ -109,6 +110,8 @@ io.on("connect", (socket) => {
     if (!validate.regex(letter, letterRegex)) return console.log("reject letter");
     if (game.milestone.currentPlayerId !== player.entry.id) return console.log("reject not current player");
     if (player.entry.correctLetters.includes(letter) || player.entry.wrongLetters.includes(letter)) return console.log("reject already used by player");
+
+    if (game.milestone.usedLetters.includes(letter)) game.milestone.usedLetters.push(letter);
 
     const foundIndices = [];
     let index = -1;
@@ -151,7 +154,8 @@ io.on("connect", (socket) => {
       letter,
       correct,
       points: player.entry.points,
-      maskedWord: game.milestone.maskedWord
+      maskedWord: game.milestone.maskedWord,
+      usedLetters: game.milestone.usedLetters
     });
 
     io.in("game").emit("setCurrentPlayerId", game.milestone.currentPlayerId);
@@ -165,7 +169,7 @@ io.on("connect", (socket) => {
     console.log(`oh no ${player.entry.username} has left it's gonna bug out`);
 
     let newCurrentPlayerIndex;
-    
+
     if (game.milestone.name === "round") newCurrentPlayerIndex = game.playerEntries.findIndex(x => x.id === game.milestone.currentPlayerId);
 
     game.playerEntries.splice(game.playerEntries.indexOf(player.entry), 1);

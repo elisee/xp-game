@@ -63,6 +63,11 @@ function renderRound() {
   $hide(".seating");
 
   $(".maskedWord").textContent = milestone.maskedWord;
+  $(".alphabet").innerHTML = "";
+
+  for (const letter of "abcdefghijklmnopqrstuvwxyz-'") {
+    $make("span", $(".alphabet"), { textContent: letter, className: milestone.usedLetters.includes(letter) ? "used" : "notUsed" })
+  }
 
   $(".round .otherTurn .username").textContent = playerEntries.find(x => x.id === milestone.currentPlayerId).username;
 
@@ -145,6 +150,7 @@ socket.on("playLetter", (data) => {
   playerEntry.points = data.points;
 
   milestone.maskedWord = data.maskedWord;
+  milestone.usedLetters = data.usedLetters;
 
   if (!data.correct) {
     const newPlayerIndex = (playerIndex + 1) % playerEntries.length;
