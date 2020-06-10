@@ -2,6 +2,10 @@
 
 "use strict";
 
+const constants = {
+  turnDuration: 15 * 1000
+};
+
 const { validate } = require("./input");
 
 const crypto = require("crypto");
@@ -41,6 +45,7 @@ const game = {
   revealedWord: null,
   playerEntries: [],
   playersById: {},
+  playerTimeout: null
 };
 
 let nextPlayerId = 0;
@@ -159,6 +164,7 @@ io.on("connect", (socket) => {
     });
 
     io.in("game").emit("setCurrentPlayerId", game.milestone.currentPlayerId);
+    resetPlayerTimeout();
 
     if (!game.milestone.maskedWord.includes("_")) endGame();
   });
@@ -179,17 +185,33 @@ io.on("connect", (socket) => {
       newCurrentPlayerIndex = newCurrentPlayerIndex % game.playerEntries.length;
       game.milestone.currentPlayerId = game.playerEntries[newCurrentPlayerIndex].id;
       io.in("game").emit("setCurrentPlayerId", game.milestone.currentPlayerId);
+      resetPlayerTimeout();
     }
 
     io.in("game").emit("removePlayerEntry", player.entry.id);
   });
 });
 
+function resetPlayerTimeout() {
+  if (game.playerTimeout != null) clearTimeout(game.playerTimeout);
+  game.playerTimeout = setTimeout(() => {
+    const newCurrentPlayerIndex = (game.playerEntries.findIndex(x => x.id === game.milestone.currentPlayerId) + 1) % game.playerEntries.length;
+    game.milestone.currentPlayerId = game.playerEntries[newCurrentPlayerIndex].id;
+    io.in("game").emit("setCurrentPlayerId", game.milestone.currentPlayerId);
+  }, constants.turnDuration);
+}
+
+
 function getRandomWord() {
   return words[Math.floor(Math.random() * words.length)];
 }
 
 function endGame() {
+  if (game.playerTimeout != null) {
+    clearTimeout(game.playerTimeout);
+    game.playerTimeout = null;
+  }
+
   const sortedPlayerEntries = game.playerEntries.slice(0).sort((a, b) => b.points - a.points);
 
   game.milestone = {
