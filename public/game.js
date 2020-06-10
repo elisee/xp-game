@@ -9,6 +9,7 @@ let milestone = {
 };
 
 const password = localStorage.getItem("hangmanPassword");
+// socket.emit("joinGame", prompt("username?", "elisee"), password, socket_joinGameCallback);
 
 // Network
 const socket = io({ reconnection: false, transports: ["websocket"] });
@@ -20,8 +21,6 @@ window.addEventListener("message", (event) => {
     socket.emit("joinGame", actualEvent.username, password, socket_joinGameCallback);
   }
 });
-
-socket.emit("joinGame", prompt("username?", "elisee"), password, socket_joinGameCallback);
 
 socket.on("disconnect", () => {
   document.body.innerHTML = "";
