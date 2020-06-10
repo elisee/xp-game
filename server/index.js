@@ -89,22 +89,24 @@ io.on("connect", (socket) => {
     }
 
     game.word = getRandomWord();
-    game.currentPlayerIndex = Math.floor(Math.random() * game.playerEntries.length);
+    const currentPlayerIndex = Math.floor(Math.random() * game.playerEntries.length);
 
     game.milestone = {
       name: "round",
       maskedWord: "_".repeat(game.word.length),
-      currentPlayerId: game.playerEntries[game.currentPlayerIndex].id
+      currentPlayerId: game.playerEntries[currentPlayerIndex].id
     };
 
     io.in("game").emit("setMilestone", game.milestone);
   });
 
   socket.on("playLetter", (letter) => {
+    if (player == null) return console.log("reject not a player");
+    if (game.milestone.name !== "round") return console.log("reject not round");
+
     if (!validate.string(letter, 1, 1)) return console.log("reject not a string of length 1");
     letter = letter.toLowerCase();
     if (!validate.regex(letter, letterRegex)) return console.log("reject letter");
-    if (game.milestone.name !== "round") return console.log("reject not round");
     if (game.milestone.currentPlayerId !== player.entry.id) return console.log("reject not current player");
     if (player.entry.correctLetters.includes(letter) || player.entry.wrongLetters.includes(letter)) return console.log("reject already used by player");
 
@@ -140,12 +142,19 @@ io.on("connect", (socket) => {
       player.entry.points -= 5;
       player.entry.wrongLetters.push(letter);
 
-      game.currentPlayerIndex = (game.currentPlayerIndex + 1) % game.playerEntries.length;
-      game.milestone.currentPlayerId = game.playerEntries[game.currentPlayerIndex].id;
+      const currentPlayerIndex = (game.playerEntries.findIndex(x => x.id === game.milestone.currentPlayerId) + 1) % game.playerEntries.length;
+      game.milestone.currentPlayerId = game.playerEntries[currentPlayerIndex].id;
     }
 
+    io.in("game").emit("playLetter", {
+      playerId: player.entry.id,
+      letter,
+      correct,
+      points: player.entry.points,
+      maskedWord: game.milestone.maskedWord
+    });
 
-    io.in("game").emit("playLetter", { playerId: player.entry.id, letter, correct, points: player.entry.points, maskedWord: game.milestone.maskedWord });
+    io.in("game").emit("setCurrentPlayerId", game.milestone.currentPlayerId);
 
     if (!game.milestone.maskedWord.includes("_")) endGame();
   });
@@ -153,12 +162,19 @@ io.on("connect", (socket) => {
   socket.on("disconnect", () => {
     if (player == null) return;
 
+    console.log(`oh no ${player.entry.username} has left it's gonna bug out`);
+
+    let newCurrentPlayerIndex;
+    
+    if (game.milestone.name === "round") newCurrentPlayerIndex = game.playerEntries.findIndex(x => x.id === game.milestone.currentPlayerId);
+
     game.playerEntries.splice(game.playerEntries.indexOf(player.entry), 1);
     delete game.playersById[player.entry.id];
 
-    if (game.milestone.name === "round" && game.currentPlayerId === player.entry.id) {
-      game.currentPlayerIndex = game.currentPlayerIndex % game.playerEntries.length;
-      game.milestone.currentPlayerId = game.playerEntries[game.currentPlayerIndex].id;
+    if (game.milestone.name === "round" && game.milestone.currentPlayerId === player.entry.id) {
+      newCurrentPlayerIndex = newCurrentPlayerIndex % game.playerEntries.length;
+      game.milestone.currentPlayerId = game.playerEntries[newCurrentPlayerIndex].id;
+      io.in("game").emit("setCurrentPlayerId", game.milestone.currentPlayerId);
     }
 
     io.in("game").emit("removePlayerEntry", player.entry.id);

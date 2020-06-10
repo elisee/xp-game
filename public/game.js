@@ -97,16 +97,15 @@ socket.on("addPlayerEntry", (playerEntry) => {
   renderScoreboard();
 });
 
-socket.on("removePlayerEntry", (playerId) => {
-  let newPlayerIndex = playerEntries.findIndex(x => x.id === playerId);
+socket.on("setCurrentPlayerId", (playerId) => {
+  milestone.currentPlayerId = playerId;
+  renderScoreboard();
+  renderRound();
+});
 
+socket.on("removePlayerEntry", (playerId) => {
   const index = playerEntries.findIndex(x => x.id === playerId);
   playerEntries.splice(index, 1);
-
-  if (milestone.currentPlayerId === playerId) {
-    newPlayerIndex = newPlayerIndex % playerEntries.length;
-    milestone.currentPlayerId = playerEntries[newPlayerIndex].id;
-  }
 
   renderScoreboard();
 });
