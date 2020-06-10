@@ -88,7 +88,7 @@ function renderScoreboard() {
   for (const entry of playerEntries) {
     const isCurrentPlayer = milestone.name === "round" && entry.id === milestone.currentPlayerId;
 
-    const playerDiv = $make("div", scoreboardElt, { className: "player" });
+    const playerDiv = $make("div", scoreboardElt, { className: `player ${isCurrentPlayer ? "currentPlayer" : ""}` });
     const usernameDiv = $make("div", playerDiv, { className: "username", textContent: `${isCurrentPlayer ? "🎈 " : ""}${entry.username}` });
     const pointsDiv = $make("div", playerDiv, { className: "points", textContent: entry.points });
     const correctLettersDiv = $make("div", playerDiv, { className: "correctLetters", textContent: entry.correctLetters });
