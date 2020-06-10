@@ -198,6 +198,7 @@ function resetPlayerTimeout() {
     const newCurrentPlayerIndex = (game.playerEntries.findIndex(x => x.id === game.milestone.currentPlayerId) + 1) % game.playerEntries.length;
     game.milestone.currentPlayerId = game.playerEntries[newCurrentPlayerIndex].id;
     io.in("game").emit("setCurrentPlayerId", game.milestone.currentPlayerId);
+    resetPlayerTimeout();
   }, constants.turnDuration);
 }
 
