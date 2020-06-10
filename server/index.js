@@ -58,7 +58,7 @@ io.on("connect", (socket) => {
     if (!validate.function(callback)) return socket.disconnect(true);
     if (game.milestone.name !== "seating") return socket.disconnect(true);
     if (password != null && !validate.string(password, 1, 1024)) return socket.disconnect(true);
-    if (username === "elisee" && password !== secrets.password) return socket.disconnect(true);
+    // if (username === "elisee" && password !== secrets.password) return socket.disconnect(true);
 
     const entry = {
       id: nextPlayerId++,
@@ -83,7 +83,7 @@ io.on("connect", (socket) => {
 
   socket.on("start", () => {
     if (game.milestone.name !== "seating") return;
-    if (player.entry.username !== "elisee") return;
+    if (!player.entry.username.startsWith("host")) return;
 
     if (game.playerEntries.length < 2) return;
 

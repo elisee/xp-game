@@ -8,6 +8,7 @@ let milestone = {
   name: "none"
 };
 
+let username = "GUEST";
 const password = localStorage.getItem("hangmanPassword");
 // socket.emit("joinGame", prompt("username?", "elisee"), password, socket_joinGameCallback);
 
@@ -18,6 +19,7 @@ window.addEventListener("message", (event) => {
   const actualEvent = JSON.parse(event.data);
 
   if (actualEvent.name === "setUsername") {
+    username = actualEvent.username;
     socket.emit("joinGame", actualEvent.username, password, socket_joinGameCallback);
   }
 });
@@ -51,7 +53,7 @@ function renderSeating() {
   $show(".seating .lastWinnerContainer", milestone.lastWinnerUsername != null);
   if (milestone.lastWinnerUsername != null) $(".seating .lastWinner").textContent = milestone.lastWinnerUsername;
 
-  $show(".seating .host", password != null);
+  $show(".seating .host", username.startsWith("host"));
 }
 
 $(".seating .host button").addEventListener("click", (event) => {
