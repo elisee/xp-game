@@ -101,10 +101,11 @@ io.on("connect", (socket) => {
   });
 
   socket.on("playLetter", (letter) => {
-    if (!validate.regex(letter, letterRegex)) return;
-    if (game.milestone.name !== "round") return;
-    if (game.milestone.currentPlayerId !== player.entry.id) return;
-    if (player.entry.correctLetters.includes(letter) || player.entry.wrongLetters.includes(letter)) return;
+    letter = letter.toLowerCase();
+    if (!validate.regex(letter, letterRegex)) return console.log("reject letter");
+    if (game.milestone.name !== "round") return console.log("reject not round");
+    if (game.milestone.currentPlayerId !== player.entry.id) return console.log("reject not current player");
+    if (player.entry.correctLetters.includes(letter) || player.entry.wrongLetters.includes(letter)) return console.log("reject already used by player");
 
     const foundIndices = [];
     let index = -1;
