@@ -1,7 +1,7 @@
 "use strict";
 
 let playerEntries = [];
-let selfPlayerId = null;
+let selfPeerId = null;
 let selfPlayerEntry = null;
 
 let milestone = {
@@ -10,17 +10,19 @@ let milestone = {
 
 let username = "GUEST";
 const password = localStorage.getItem("hangmanPassword");
-// socket.emit("joinGame", prompt("username?", "elisee"), password, socket_joinGameCallback);
 
 // Network
 const socket = io({ reconnection: false, transports: ["websocket"] });
+
+username = prompt("username?", "elisee")
+socket.emit("joinGame", username, socket_joinGameCallback);
 
 window.addEventListener("message", (event) => {
   const actualEvent = JSON.parse(event.data);
 
   if (actualEvent.name === "setUsername") {
     username = actualEvent.username;
-    socket.emit("joinGame", actualEvent.username, password, socket_joinGameCallback);
+    socket.emit("joinGame", actualEvent.username, socket_joinGameCallback);
   }
 });
 
@@ -33,8 +35,8 @@ function socket_joinGameCallback(data) {
   $hide(".loading");
 
   playerEntries = data.playerEntries;
-  selfPlayerId = data.selfPlayerId;
-  selfPlayerEntry = playerEntries.find(x => x.id === selfPlayerId);
+  selfPeerId = data.selfPeerId;
+  selfPlayerEntry = playerEntries.find(x => x.id === selfPeerId);
 
   milestone = data.milestone;
   if (milestone.name === "seating") renderSeating();
@@ -53,7 +55,11 @@ function renderSeating() {
   $show(".seating .lastWinnerContainer", milestone.lastWinnerUsername != null);
   if (milestone.lastWinnerUsername != null) $(".seating .lastWinner").textContent = milestone.lastWinnerUsername;
 
-  $show(".seating .host", username.startsWith("host"));
+  renderHostButton();
+}
+
+function renderHostButton() {
+  $show(".seating .host", playerEntries.length > 0 && playerEntries[0].id === selfPeerId);
 }
 
 $(".seating .host button").addEventListener("click", (event) => {
@@ -71,16 +77,16 @@ function renderRound() {
     $make("span", $(".alphabet"), { textContent: letter, className: milestone.usedLetters.includes(letter) ? "used" : "notUsed" });
   }
 
-  $(".round .otherTurn .username").textContent = playerEntries.find(x => x.id === milestone.currentPlayerId).username;
+  $(".round .otherTurn .username").textContent = playerEntries.find(x => x.id === milestone.currentPlayerPeerId).username;
 
-  $show(".round .selfTurn", milestone.currentPlayerId === selfPlayerId);
-  $show(".round .otherTurn", milestone.currentPlayerId !== selfPlayerId);
+  $show(".round .selfTurn", milestone.currentPlayerPeerId === selfPeerId);
+  $show(".round .otherTurn", milestone.currentPlayerPeerId !== selfPeerId);
 
-  if (milestone.currentPlayerId === selfPlayerId) $(".round .selfTurn input").focus();
+  if (milestone.currentPlayerPeerId === selfPeerId) $(".round .selfTurn input").focus();
 }
 
 $(".round").addEventListener("click", (event) => {
-  if (milestone.currentPlayerId === selfPlayerId) $(".round .selfTurn input").focus();
+  if (milestone.currentPlayerPeerId === selfPeerId) $(".round .selfTurn input").focus();
 });
 
 function renderScoreboard() {
@@ -88,7 +94,7 @@ function renderScoreboard() {
   scoreboardElt.innerHTML = "";
 
   for (const entry of playerEntries) {
-    const isCurrentPlayer = milestone.name === "round" && entry.id === milestone.currentPlayerId;
+    const isCurrentPlayer = milestone.name === "round" && entry.id === milestone.currentPlayerPeerId;
 
     const playerDiv = $make("div", scoreboardElt, { className: `player ${isCurrentPlayer ? "currentPlayer" : ""}` });
     const usernameDiv = $make("div", playerDiv, { className: "username", textContent: `${isCurrentPlayer ? "🎈 " : ""}${entry.username}` });
@@ -102,10 +108,12 @@ socket.on("addPlayerEntry", (playerEntry) => {
   playerEntries.push(playerEntry);
 
   renderScoreboard();
+  renderHostButton();
 });
 
-socket.on("setCurrentPlayerId", (playerId) => {
-  milestone.currentPlayerId = playerId;
+socket.on("setCurrentPlayerPeerId", (peerId) => {
+  milestone.currentPlayerPeerId = peerId;
+
   renderScoreboard();
   renderRound();
 });
@@ -115,13 +123,16 @@ socket.on("removePlayerEntry", (playerId) => {
   playerEntries.splice(index, 1);
 
   renderScoreboard();
+  renderHostButton();
 });
 
 socket.on("setMilestone", (newMilestone) => {
   milestone = newMilestone;
 
-  if (milestone.name === "seating") renderSeating();
-  else {
+  if (milestone.name === "seating") {
+    playerEntries.length = 0;
+    renderSeating();
+  } else {
     for (const playerEntry of playerEntries) {
       playerEntry.points = 0;
       playerEntry.correctLetters.length = 0;
@@ -132,6 +143,11 @@ socket.on("setMilestone", (newMilestone) => {
   }
 });
 
+socket.on("setPlayerEntries", (newPlayerEntries) => {
+  playerEntries = newPlayerEntries;
+  renderScoreboard();
+  renderHostButton();
+})
 
 $(".selfTurn").addEventListener("submit", (event) => {
   event.preventDefault();
@@ -143,7 +159,7 @@ $(".selfTurn").addEventListener("submit", (event) => {
 });
 
 socket.on("playLetter", (data) => {
-  const playerIndex = playerEntries.findIndex(x => x.id === data.playerId);
+  const playerIndex = playerEntries.findIndex(x => x.id === data.playerPeerId);
   const playerEntry = playerEntries[playerIndex];
 
   if (data.correct) playerEntry.correctLetters.push(data.letter);
@@ -156,7 +172,7 @@ socket.on("playLetter", (data) => {
 
   if (!data.correct) {
     const newPlayerIndex = (playerIndex + 1) % playerEntries.length;
-    milestone.currentPlayerId = playerEntries[newPlayerIndex].id;
+    milestone.currentPlayerPeerId = playerEntries[newPlayerIndex].id;
   }
 
   renderScoreboard();

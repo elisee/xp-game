@@ -43,47 +43,50 @@ const game = {
     name: "seating"
   },
   revealedWord: null,
+  peersById: {},
   playerEntries: [],
-  playersById: {},
   playerTimeout: null
 };
 
-let nextPlayerId = 0;
+let nextPeerId = 0;
 
 io.on("connect", (socket) => {
-  let player;
+  let peer;
 
-  socket.on("joinGame", (username, password, callback) => {
+  socket.on("joinGame", (username, callback) => {
     if (!validate.string(username, 1, 30)) return socket.disconnect(true);
     if (!validate.function(callback)) return socket.disconnect(true);
-    if (game.milestone.name !== "seating") return socket.disconnect(true);
-    if (password != null && !validate.string(password, 1, 1024)) return socket.disconnect(true);
+    // if (password != null && !validate.string(password, 1, 1024)) return socket.disconnect(true);
     // if (username === "elisee" && password !== secrets.password) return socket.disconnect(true);
 
     const entry = {
-      id: nextPlayerId++,
+      id: nextPeerId++,
       username,
       correctLetters: [],
       wrongLetters: [],
-      points: 0
+      points: 0,
     };
 
-    player = {
-      entry
+    peer = {
+      entry,
+      isSeated: game.milestone.name === "seating",
     };
 
-    game.playerEntries.push(entry);
-    game.playersById[entry.id] = player;
+    if (peer.isSeated) {
+      game.playerEntries.push(peer.entry);
+      io.in("game").emit("addPlayerEntry", peer.entry);
+    }
 
-    callback({ playerEntries: game.playerEntries, selfPlayerId: entry.id, milestone: game.milestone });
+    game.peersById[entry.id] = peer;
 
-    io.in("game").emit("addPlayerEntry", entry);
+    callback({ playerEntries: game.playerEntries, selfPeerId: entry.id, milestone: game.milestone });
+
     socket.join("game");
   });
 
   socket.on("start", () => {
     if (game.milestone.name !== "seating") return;
-    if (!player.entry.username.startsWith("host")) return;
+    if (game.playerEntries.indexOf(peer.entry) !== 0) return;
 
     if (game.playerEntries.length < 2) return;
 
@@ -100,7 +103,7 @@ io.on("connect", (socket) => {
       name: "round",
       maskedWord: "_".repeat(game.word.length),
       usedLetters: [],
-      currentPlayerId: game.playerEntries[currentPlayerIndex].id
+      currentPlayerPeerId: game.playerEntries[currentPlayerIndex].id
     };
 
     io.in("game").emit("setMilestone", game.milestone);
@@ -108,14 +111,14 @@ io.on("connect", (socket) => {
   });
 
   socket.on("playLetter", (letter) => {
-    if (player == null) return console.log("reject not a player");
+    if (peer == null) return console.log("reject not a player");
     if (game.milestone.name !== "round") return console.log("reject not round");
 
     if (!validate.string(letter, 1, 1)) return console.log("reject not a string of length 1");
     letter = letter.toLowerCase();
     if (!validate.regex(letter, letterRegex)) return console.log("reject letter");
-    if (game.milestone.currentPlayerId !== player.entry.id) return console.log("reject not current player");
-    if (player.entry.correctLetters.includes(letter) || player.entry.wrongLetters.includes(letter)) return console.log("reject already used by player");
+    if (game.milestone.currentPlayerPeerId !== peer.entry.id) return console.log("reject not current player");
+    if (peer.entry.correctLetters.includes(letter) || peer.entry.wrongLetters.includes(letter)) return console.log("reject already used by player");
 
     if (!game.milestone.usedLetters.includes(letter)) game.milestone.usedLetters.push(letter);
 
@@ -140,65 +143,69 @@ io.on("connect", (socket) => {
     const correct = newLettersFound > 0;
 
     if (correct) {
-      player.entry.points += 10 * newLettersFound;
-      player.entry.correctLetters.push(letter);
+      peer.entry.points += 10 * newLettersFound;
+      peer.entry.correctLetters.push(letter);
 
       if (!game.milestone.maskedWord.includes("_")) {
-        player.entry.points += 50;
+        peer.entry.points += 50;
       }
 
     } else {
-      player.entry.points -= 5;
-      player.entry.wrongLetters.push(letter);
+      peer.entry.points -= 5;
+      peer.entry.wrongLetters.push(letter);
 
-      const currentPlayerIndex = (game.playerEntries.findIndex(x => x.id === game.milestone.currentPlayerId) + 1) % game.playerEntries.length;
-      game.milestone.currentPlayerId = game.playerEntries[currentPlayerIndex].id;
+      const currentPlayerIndex = (game.playerEntries.findIndex(x => x.id === game.milestone.currentPlayerPeerId) + 1) % game.playerEntries.length;
+      game.milestone.currentPlayerPeerId = game.playerEntries[currentPlayerIndex].id;
     }
 
     io.in("game").emit("playLetter", {
-      playerId: player.entry.id,
+      playerPeerId: peer.entry.id,
       letter,
       correct,
-      points: player.entry.points,
+      points: peer.entry.points,
       maskedWord: game.milestone.maskedWord,
       usedLetters: game.milestone.usedLetters
     });
 
-    io.in("game").emit("setCurrentPlayerId", game.milestone.currentPlayerId);
+    io.in("game").emit("setCurrentPlayerPeerId", game.milestone.currentPlayerPeerId);
     resetPlayerTimeout();
 
     if (!game.milestone.maskedWord.includes("_")) endGame();
   });
 
   socket.on("disconnect", () => {
-    if (player == null) return;
-
-    console.log(`oh no ${player.entry.username} has left it's gonna bug out`);
+    if (peer == null) return;
 
     let newCurrentPlayerIndex;
+    if (game.milestone.name === "round") newCurrentPlayerIndex = game.playerEntries.findIndex(x => x.id === game.milestone.currentPlayerPeerId);
 
-    if (game.milestone.name === "round") newCurrentPlayerIndex = game.playerEntries.findIndex(x => x.id === game.milestone.currentPlayerId);
+    game.playerEntries.splice(game.playerEntries.indexOf(peer.entry), 1);
+    delete game.peersById[peer.entry.id];
 
-    game.playerEntries.splice(game.playerEntries.indexOf(player.entry), 1);
-    delete game.playersById[player.entry.id];
+    if (game.milestone.name === "round") {
+      if (game.playerEntries.length === 0) {
+        endGame();
+        return;
+      }
 
-    if (game.milestone.name === "round" && game.milestone.currentPlayerId === player.entry.id) {
-      newCurrentPlayerIndex = newCurrentPlayerIndex % game.playerEntries.length;
-      game.milestone.currentPlayerId = game.playerEntries[newCurrentPlayerIndex].id;
-      io.in("game").emit("setCurrentPlayerId", game.milestone.currentPlayerId);
-      resetPlayerTimeout();
+      if (game.milestone.currentPlayerPeerId === peer.entry.id) {
+        newCurrentPlayerIndex = newCurrentPlayerIndex % game.playerEntries.length;
+        game.milestone.currentPlayerPeerId = game.playerEntries[newCurrentPlayerIndex].id;
+        io.in("game").emit("setCurrentPlayerPeerId", game.milestone.currentPlayerPeerId);
+        resetPlayerTimeout();
+      }
     }
 
-    io.in("game").emit("removePlayerEntry", player.entry.id);
+    io.in("game").emit("removePlayerEntry", peer.entry.id);
   });
 });
 
 function resetPlayerTimeout() {
   if (game.playerTimeout != null) clearTimeout(game.playerTimeout);
   game.playerTimeout = setTimeout(() => {
-    const newCurrentPlayerIndex = (game.playerEntries.findIndex(x => x.id === game.milestone.currentPlayerId) + 1) % game.playerEntries.length;
-    game.milestone.currentPlayerId = game.playerEntries[newCurrentPlayerIndex].id;
-    io.in("game").emit("setCurrentPlayerId", game.milestone.currentPlayerId);
+    const newCurrentPlayerIndex = (game.playerEntries.findIndex(x => x.id === game.milestone.currentPlayerPeerId) + 1) % game.playerEntries.length;
+    game.milestone.currentPlayerPeerId = game.playerEntries[newCurrentPlayerIndex].id;
+    io.in("game").emit("setCurrentPlayerPeerId", game.milestone.currentPlayerPeerId);
     resetPlayerTimeout();
   }, constants.turnDuration);
 }
@@ -219,10 +226,14 @@ function endGame() {
   game.milestone = {
     name: "seating",
     lastWord: game.word,
-    lastWinnerUsername: sortedPlayerEntries[0].username
+    lastWinnerUsername: sortedPlayerEntries.length > 0 ? sortedPlayerEntries[0].username : ""
   };
 
+  game.playerEntries.length = 0;
+  for (const peer of Object.values(game.peersById)) game.playerEntries.push(peer.entry);
+
   io.in("game").emit("setMilestone", game.milestone);
+  io.in("game").emit("setPlayerEntries", game.playerEntries);
 }
 
 server.listen(4001);
