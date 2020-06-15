@@ -14,8 +14,8 @@ const password = localStorage.getItem("hangmanPassword");
 // Network
 const socket = io({ reconnection: false, transports: ["websocket"] });
 
-username = prompt("username?", "elisee")
-socket.emit("joinGame", username, socket_joinGameCallback);
+// username = prompt("username?", "elisee")
+// socket.emit("joinGame", username, socket_joinGameCallback);
 
 window.addEventListener("message", (event) => {
   const actualEvent = JSON.parse(event.data);
