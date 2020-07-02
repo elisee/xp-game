@@ -39,7 +39,8 @@ scene.add(new THREE.GridHelper(10, 10));
 const tileTypeMaterials = {
   [tileTypes.dirt]: new THREE.MeshBasicMaterial({ color: 0xff87632b }),
   [tileTypes.grass]: new THREE.MeshBasicMaterial({ color: 0xff46bc68 }),
-  [tileTypes.water]: new THREE.MeshBasicMaterial({ color: 0xff1981f4 })
+  [tileTypes.water]: new THREE.MeshBasicMaterial({ color: 0xff1981f4 }),
+  [tileTypes.rock]: new THREE.MeshBasicMaterial({ color: 0xffacafb7 })
 }
 
 
@@ -136,11 +137,13 @@ function socket_joinGameCallback(data) {
 
       const material = tileTypeMaterials[tile];
       if (material != null) {
-        const geometry = new THREE.PlaneGeometry(1, 1, 1, 1);
-        const plane = new THREE.Mesh(geometry, material);
-        plane.position.set(i, 0, j);
-        plane.rotation.x = -Math.PI / 2;
-        mapRoot.add(plane);
+        const geometry = tile === tileTypes.rock ? new THREE.BoxGeometry(1, 1, 1) : new THREE.PlaneGeometry(1, 1, 1, 1);
+        if (tile === tileTypes.rock) geometry.applyMatrix4(new THREE.Matrix4().makeTranslation(0, 0.5, 0));
+        else geometry.applyMatrix4(new THREE.Matrix4().makeRotationX(-Math.PI / 2));
+
+        const mesh = new THREE.Mesh(geometry, material);
+        mesh.position.set(i, 0, j);
+        mapRoot.add(mesh);
       }
     }
   }
