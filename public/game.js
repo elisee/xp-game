@@ -173,7 +173,7 @@ function addEntity(entityId, entity) {
       nameplateCtx.clearRect(0, 0, nameplateCanvas.width, nameplateCanvas.height);
       nameplateCtx.textAlign = "center";
       nameplateCtx.textBaseline = "middle";
-      nameplateCtx.fillStyle = "#ff0000";
+      nameplateCtx.fillStyle = "#ffaaaa";
       nameplateCtx.font = "bold 32px Arial";
       nameplateCtx.fillText(entity.nickname, nameplateCanvas.width / 2, nameplateCanvas.height / 2);
 
