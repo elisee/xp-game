@@ -18,6 +18,7 @@ const app = express();
 const server = require("http").createServer(app);
 const io = require("socket.io")(server);
 
+app.use("/three.js", express.static(path.resolve(__dirname, "../node_modules/three/build/three.js")));
 app.use(express.static(path.resolve(__dirname, "../public")));
 
 const game = {

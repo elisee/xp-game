@@ -2,5 +2,9 @@
   "compilerOptions": {
     "target": "es2020",
     "module": "none"
-  }
+  },
+  "include": [
+    "../node_modules/three/src",
+    "."
+  ]
 }
