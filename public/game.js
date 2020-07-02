@@ -11,8 +11,38 @@ let nickname;
 
 // Input
 
+let mouseButtons = {};
+let mousePresses = {};
+const normalizedMouse = { x: 0, y: 0 };
+const raycaster = new THREE.Raycaster();
+const floorPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0.5);
+
 let keys = {};
 let keyPresses = {};
+
+document.body.addEventListener("mousedown", (event) => {
+  mouseButtons[event.button] = true;
+  mousePresses[event.button] = true;
+});
+
+document.body.addEventListener("mouseup", (event) => {
+  mouseButtons[event.button] = false;
+});
+
+document.body.addEventListener("mousemove", (event) => {
+  normalizedMouse.x = ((event.clientX - canvasClientRect.x) / canvasClientRect.width) * 2 - 1;
+  normalizedMouse.y = -((event.clientY - canvasClientRect.y) / canvasClientRect.height) * 2 + 1;
+
+  if (selfEntityObj != null) {
+    raycaster.setFromCamera(normalizedMouse, camera);
+    const target = new THREE.Vector3();
+    raycaster.ray.intersectPlane(floorPlane, target);
+    
+    const angle = Math.atan2(target.z - selfEntityObj.position.z, target.x - selfEntityObj.position.x);
+    selfEntityObj.rotation.y = -angle;
+  }
+});
+
 
 document.body.addEventListener("keydown", (event) => {
   // event.preventDefault();
@@ -72,6 +102,7 @@ function animate() {
   }
 
   keyPresses = {};
+  mousePresses = {};
 
   // Draw
   canvasClientRect = renderer.domElement.parentElement.getBoundingClientRect();
