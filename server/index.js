@@ -111,6 +111,8 @@ io.on("connect", (socket) => {
 
       world.entitiesById[player.entityId] = entity = { type: "player", pos: [64, 66], nickname };
       game.playersByUserToken[userToken] = player;
+
+      io.emit("addEntity", player.entityId, entity);
     } else {
       world = game.worldsByName[player.worldName];
       entity = world.entitiesById[player.entityId];
@@ -123,8 +125,6 @@ io.on("connect", (socket) => {
     game.peersById[entry.id] = peer;
 
     callback({ selfPeerId: entry.id, world, entityId: player.entityId });
-
-    io.emit("addEntity", player.entityId, entity);
 
     socket.join("game");
 

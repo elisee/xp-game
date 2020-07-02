@@ -155,8 +155,32 @@ function addEntity(entityId, entity) {
       color.setHex(Math.random() * 0xffffff);
       const material = new THREE.MeshBasicMaterial({ color });
 
-      const entityObj = new THREE.Mesh(box, material);
+      const entityObj = new THREE.Object3D();
       entityObj.position.set(entity.pos[0], 0, entity.pos[1]);
+
+      const entityCube = new THREE.Mesh(box, material);
+      entityObj.add(entityCube);
+
+      const nameplateCanvas = document.createElement("canvas");
+      nameplateCanvas.width = 256;
+      nameplateCanvas.height = 64;
+      const nameplateCtx = nameplateCanvas.getContext("2d", { alpha: true });
+      nameplateCtx.clearRect(0, 0, nameplateCanvas.width, nameplateCanvas.height);
+      nameplateCtx.textAlign = "center";
+      nameplateCtx.textBaseline = "middle";
+      nameplateCtx.fillStyle = "#ff0000";
+      nameplateCtx.font = "bold 32px Arial";
+      nameplateCtx.fillText(entity.nickname, nameplateCanvas.width / 2, nameplateCanvas.height / 2);
+
+      const nameplateMap = new THREE.CanvasTexture(nameplateCanvas);
+
+      const nameplateGeometry = new THREE.PlaneGeometry(2, 0.5, 1, 1);
+      const nameplateMaterial = new THREE.MeshBasicMaterial({ map: nameplateMap });
+
+      const nameplateMesh = new THREE.Mesh(nameplateGeometry, nameplateMaterial);
+      nameplateMesh.position.set(0, 2, 0);
+      entityObj.add(nameplateMesh);
+
       entitiesRoot.add(entityObj);
 
       entityObjsById[entityId] = entityObj;
