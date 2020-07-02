@@ -5,6 +5,7 @@ let selfWorld;
 let selfEntityId;
 let selfEntityObj;
 const entityObjsById = {};
+const bullets = [];
 
 let userToken;
 let nickname;
@@ -69,7 +70,7 @@ const scene = new THREE.Scene();
 scene.add(new THREE.GridHelper(10, 10));
 
 const tileTypeMaterials = {
-  [tileTypes.dirt]: new THREE.MeshBasicMaterial({ color: 0xff87632b }),
+  [tileTypes.dirt]: new THREE.MeshBasicMaterial({ color: 0xffae8547 }),
   [tileTypes.grass]: new THREE.MeshBasicMaterial({ color: 0xff46bc68 }),
   [tileTypes.water]: new THREE.MeshBasicMaterial({ color: 0xff1981f4 }),
   [tileTypes.rock]: new THREE.MeshBasicMaterial({ color: 0xffacafb7 })
@@ -84,8 +85,14 @@ scene.add(entitiesRoot);
 
 const camera = new THREE.PerspectiveCamera(70, 1, 0.1, 100);
 
-function animate() {
+let previousAnimateTime = null;
+
+function animate(time) {
+  if (previousAnimateTime == null) previousAnimateTime = time;
   requestAnimationFrame(animate);
+
+  const elapsedTime = (time - previousAnimateTime);
+  previousAnimateTime = time;
 
   // Input
   const move = new THREE.Vector3();
@@ -96,8 +103,8 @@ function animate() {
   if (keys.KeyD) move.x += 1;
 
   if (move.lengthSq() > 0) {
-    const speed = 0.1;
-    move.normalize().multiplyScalar(speed);
+    const speed = 0.005;
+    move.normalize().multiplyScalar(speed * elapsedTime);
 
     selfEntityObj.position.add(move);
     socket.emit("move", selfEntityObj.position.x, selfEntityObj.position.z, selfEntityObj.rotation.y);
@@ -105,6 +112,14 @@ function animate() {
 
   keyPresses = {};
   mousePresses = {};
+
+  // Simulate
+  for (const bullet of bullets) {
+    const angle = bullet.entity.angle;
+    bullet.entity.pos[0] += Math.cos(angle) * bullet.entity.speed * elapsedTime;
+    bullet.entity.pos[1] -= Math.sin(angle) * bullet.entity.speed * elapsedTime;
+    bullet.obj.position.set(bullet.entity.pos[0], 0.5, bullet.entity.pos[1]);
+  }
 
   // Draw
   canvasClientRect = renderer.domElement.parentElement.getBoundingClientRect();
@@ -123,7 +138,7 @@ function animate() {
   }
 }
 
-animate();
+requestAnimationFrame(animate);
 
 // Network
 const socket = io({ reconnection: false, transports: ["websocket"] });
@@ -187,7 +202,7 @@ function socket_joinGameCallback(data) {
 }
 
 const gunMaterial = new THREE.MeshBasicMaterial({ color: 0x443322 });
-const bulletMaterial = new THREE.MeshBasicMaterial({ color: 0x665533 });
+const bulletMaterial = new THREE.MeshBasicMaterial({ color: 0xaa5533 });
 
 function addEntity(entityId, entity) {
   switch (entity.type) {
@@ -242,6 +257,7 @@ function addEntity(entityId, entity) {
       bulletEntityObj.rotation.y = entity.angle;
       entitiesRoot.add(bulletEntityObj);
 
+      bullets.push({ entity, obj: bulletEntityObj });
       break;
   }
 }

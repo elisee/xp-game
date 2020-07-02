@@ -150,7 +150,13 @@ io.on("connect", (socket) => {
       const bulletEntityId = world.nextEntityId.toString();
       world.nextEntityId++;
 
-      const bullet = world.entitiesById[bulletEntityId] = { type: "bullet", pos: entity.pos.slice(0), angle: entity.angle, shooterEntityId: player.entityId };
+      const bullet = world.entitiesById[bulletEntityId] = {
+        type: "bullet",
+        pos: entity.pos.slice(0),
+        angle: entity.angle,
+        speed: 0.03,
+        shooterEntityId: player.entityId
+      };
       io.in("game").emit("addEntity", bulletEntityId, bullet);
     });
   });
