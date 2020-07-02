@@ -37,7 +37,7 @@ document.body.addEventListener("mousemove", (event) => {
     raycaster.setFromCamera(normalizedMouse, camera);
     const target = new THREE.Vector3();
     raycaster.ray.intersectPlane(floorPlane, target);
-    
+
     const angle = Math.atan2(target.z - selfEntityObj.position.z, target.x - selfEntityObj.position.x);
     selfEntityObj.rotation.y = -angle;
   }
@@ -182,11 +182,11 @@ function socket_joinGameCallback(data) {
   for (const [entityId, entity] of Object.entries(selfWorld.entitiesById)) addEntity(entityId, entity);
 }
 
+const gunMaterial = new THREE.MeshBasicMaterial({ color: 0x443322 });
+
 function addEntity(entityId, entity) {
   switch (entity.type) {
     case "player":
-      const box = new THREE.BoxGeometry(1, 1, 1);
-      box.applyMatrix4(new THREE.Matrix4().makeTranslation(0, 0.5, 0));
 
       const color = new THREE.Color(0xffffff).setHex(entity.color);
       const material = new THREE.MeshBasicMaterial({ color });
@@ -194,8 +194,15 @@ function addEntity(entityId, entity) {
       const entityObj = new THREE.Object3D();
       entityObj.position.set(entity.pos[0], 0, entity.pos[1]);
 
+      const box = new THREE.BoxGeometry(1, 1, 1);
+      box.applyMatrix4(new THREE.Matrix4().makeTranslation(0, 0.5, 0));
       const entityCube = new THREE.Mesh(box, material);
       entityObj.add(entityCube);
+
+      const gunBox = new THREE.BoxGeometry(0.4, 0.2, 0.2);
+      const entityGun = new THREE.Mesh(gunBox, gunMaterial);
+      entityGun.position.set(0.5 + 0.2, 0.5, 0);
+      entityObj.add(entityGun);
 
       const nameplateCanvas = document.createElement("canvas");
       nameplateCanvas.width = 256;
