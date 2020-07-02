@@ -75,6 +75,7 @@ function initData() {
 
 
 const express = require("express");
+const { Socket } = require("dgram");
 
 const app = express();
 
@@ -155,6 +156,7 @@ io.on("connect", (socket) => {
         pos: entity.pos.slice(0),
         angle: entity.angle,
         speed: 0.03,
+        lifetime: 500,
         shooterEntityId: player.entityId
       };
       io.in("game").emit("addEntity", bulletEntityId, bullet);
@@ -168,6 +170,41 @@ io.on("connect", (socket) => {
     delete game.peersById[peer.entry.id];
   });
 });
+
+let previousSimulateTime = Date.now();
+
+function simulate() {
+  const newTime = Date.now();
+  const elapsedTime = newTime - previousSimulateTime;
+  previousSimulateTime = newTime;
+
+  for (const world of Object.values(game.worldsByName)) {
+    const removedEntityIds = new Set();
+
+    for (const [entityId, entity] of Object.entries(world.entitiesById)) {
+      if (entity.type === "bullet") {
+        entity.lifetime -= elapsedTime;
+        if (entity.lifetime < 0) {
+          removedEntityIds.add(entityId);
+          continue;
+        }
+
+        entity.pos[0] += Math.cos(entity.angle) * entity.speed * elapsedTime;
+        entity.pos[1] -= Math.sin(entity.angle) * entity.speed * elapsedTime;
+      }
+    }
+
+    if (removedEntityIds.size > 0) {
+      for (const removedEntityId of removedEntityIds) {
+        delete world.entitiesById[removedEntityId];
+      }
+
+      io.in("game").emit("removeEntities", Array.from(removedEntityIds));
+    }
+  }
+}
+
+setInterval(simulate, 1000 / 60);
 
 server.listen(4001);
 console.log(`XP_GAME_STARTED`);

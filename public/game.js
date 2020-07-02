@@ -163,6 +163,20 @@ socket.on("addEntity", (entityId, entity) => {
   addEntity(entityId, entity);
 });
 
+socket.on("removeEntities", (entityIds) => {
+  for (const entityId of entityIds) {
+    const removedEntity = selfWorld.entitiesById[entityId];
+    delete selfWorld.entitiesById[entityId];
+
+    if (removedEntity.type === "bullet") {
+      const bulletIndex = bullets.findIndex(x => x.entity === removedEntity);
+      bullets[bulletIndex].obj.geometry.dispose();
+      entitiesRoot.remove(bullets[bulletIndex].obj);
+      bullets.splice(bullets.findIndex(x => x.entity === removedEntity), 1);
+    }
+  }
+});
+
 socket.on("moveEntity", (entityId, pos, angle) => {
   if (entityId === selfEntityId) return;
 
@@ -202,7 +216,7 @@ function socket_joinGameCallback(data) {
 }
 
 const gunMaterial = new THREE.MeshBasicMaterial({ color: 0x443322 });
-const bulletMaterial = new THREE.MeshBasicMaterial({ color: 0xaa5533 });
+const bulletMaterial = new THREE.MeshBasicMaterial({ color: 0xdd5533 });
 
 function addEntity(entityId, entity) {
   switch (entity.type) {
