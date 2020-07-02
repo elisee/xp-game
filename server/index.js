@@ -2,10 +2,6 @@
 
 "use strict";
 
-const constants = {
-  turnDuration: 15 * 1000
-};
-
 const { validate } = require("./input");
 
 const crypto = require("crypto");
@@ -14,20 +10,6 @@ const fs = require("fs");
 
 const localFolderPath = path.resolve(__dirname, "../local");
 try { fs.mkdirSync(localFolderPath); } catch { }
-
-let secrets;
-
-try { secrets = JSON.parse(fs.readFileSync(path.join(localFolderPath, "secrets.json"), { encoding: "utf8" })); }
-catch {
-  const buf = new Buffer(36);
-  crypto.randomFillSync(buf);
-  secrets = { "password": buf.toString("base64") };
-  fs.writeFileSync(path.join(localFolderPath, "secrets.json"), JSON.stringify(secrets));
-}
-
-const words = fs.readFileSync(path.resolve(__dirname, "../data/words.txt"), { encoding: "utf8" }).replace(/\r\n/g, "\n").trim().split("\n").map(x => x.trim().toLowerCase());
-
-const letterRegex = /^[a-z'-]$/;
 
 const express = require("express");
 
@@ -39,202 +21,37 @@ const io = require("socket.io")(server);
 app.use(express.static(path.resolve(__dirname, "../public")));
 
 const game = {
-  milestone: {
-    name: "seating"
-  },
-  revealedWord: null,
-  peersById: {},
-  playerEntries: [],
-  playerTimeout: null
+  pub: {},
+  worlds: {},
+  peersById: {}
 };
 
 let nextPeerId = 0;
 
 io.on("connect", (socket) => {
   let peer;
+  let world;
 
   socket.on("joinGame", (username, callback) => {
     if (!validate.string(username, 1, 30)) return socket.disconnect(true);
     if (!validate.function(callback)) return socket.disconnect(true);
-    // if (password != null && !validate.string(password, 1, 1024)) return socket.disconnect(true);
-    // if (username === "elisee" && password !== secrets.password) return socket.disconnect(true);
 
-    const entry = {
-      id: nextPeerId++,
-      username,
-      correctLetters: [],
-      wrongLetters: [],
-      points: 0,
-    };
+    const entry = { id: nextPeerId++, username };
 
-    peer = {
-      entry,
-      isSeated: game.milestone.name === "seating",
-    };
-
-    if (peer.isSeated) {
-      game.playerEntries.push(peer.entry);
-      io.in("game").emit("addPlayerEntry", peer.entry);
-    }
-
+    peer = { entry };
     game.peersById[entry.id] = peer;
 
-    callback({ playerEntries: game.playerEntries, selfPeerId: entry.id, milestone: game.milestone });
+    callback({ selfPeerId: entry.id, world });
 
     socket.join("game");
-  });
-
-  socket.on("start", () => {
-    if (game.milestone.name !== "seating") return;
-    if (game.playerEntries.indexOf(peer.entry) !== 0) return;
-
-    if (game.playerEntries.length < 2) return;
-
-    for (const entry of game.playerEntries) {
-      entry.points = 0;
-      entry.correctLetters.length = 0;
-      entry.wrongLetters.length = 0;
-    }
-
-    game.word = getRandomWord();
-    const currentPlayerIndex = Math.floor(Math.random() * game.playerEntries.length);
-
-    game.milestone = {
-      name: "round",
-      maskedWord: "_".repeat(game.word.length),
-      usedLetters: [],
-      currentPlayerPeerId: game.playerEntries[currentPlayerIndex].id
-    };
-
-    io.in("game").emit("setMilestone", game.milestone);
-    resetPlayerTimeout();
-  });
-
-  socket.on("playLetter", (letter) => {
-    if (peer == null) return console.log("reject not a player");
-    if (game.milestone.name !== "round") return console.log("reject not round");
-
-    if (!validate.string(letter, 1, 1)) return console.log("reject not a string of length 1");
-    letter = letter.toLowerCase();
-    if (!validate.regex(letter, letterRegex)) return console.log("reject letter");
-    if (game.milestone.currentPlayerPeerId !== peer.entry.id) return console.log("reject not current player");
-    if (peer.entry.correctLetters.includes(letter) || peer.entry.wrongLetters.includes(letter)) return console.log("reject already used by player");
-
-    if (!game.milestone.usedLetters.includes(letter)) game.milestone.usedLetters.push(letter);
-
-    const foundIndices = [];
-    let index = -1;
-
-    while (true) {
-      index = game.word.indexOf(letter, index + 1);
-      if (index === -1) break;
-      foundIndices.push(index);
-    }
-
-    let newLettersFound = 0;
-
-    for (const index of foundIndices) {
-      if (game.milestone.maskedWord[index] === "_") {
-        game.milestone.maskedWord = game.milestone.maskedWord.substring(0, index) + letter + game.milestone.maskedWord.substring(index + 1);
-        newLettersFound++;
-      }
-    }
-
-    const correct = newLettersFound > 0;
-
-    if (correct) {
-      peer.entry.points += 10 * newLettersFound;
-      peer.entry.correctLetters.push(letter);
-
-      if (!game.milestone.maskedWord.includes("_")) {
-        peer.entry.points += 50;
-      }
-
-    } else {
-      peer.entry.points -= 5;
-      peer.entry.wrongLetters.push(letter);
-
-      const currentPlayerIndex = (game.playerEntries.findIndex(x => x.id === game.milestone.currentPlayerPeerId) + 1) % game.playerEntries.length;
-      game.milestone.currentPlayerPeerId = game.playerEntries[currentPlayerIndex].id;
-    }
-
-    io.in("game").emit("playLetter", {
-      playerPeerId: peer.entry.id,
-      letter,
-      correct,
-      points: peer.entry.points,
-      maskedWord: game.milestone.maskedWord,
-      usedLetters: game.milestone.usedLetters
-    });
-
-    io.in("game").emit("setCurrentPlayerPeerId", game.milestone.currentPlayerPeerId);
-    resetPlayerTimeout();
-
-    if (!game.milestone.maskedWord.includes("_")) endGame();
   });
 
   socket.on("disconnect", () => {
     if (peer == null) return;
 
-    let newCurrentPlayerIndex;
-    if (game.milestone.name === "round") newCurrentPlayerIndex = game.playerEntries.findIndex(x => x.id === game.milestone.currentPlayerPeerId);
-
-    game.playerEntries.splice(game.playerEntries.indexOf(peer.entry), 1);
     delete game.peersById[peer.entry.id];
-
-    if (game.milestone.name === "round") {
-      if (game.playerEntries.length === 0) {
-        endGame();
-        return;
-      }
-
-      if (game.milestone.currentPlayerPeerId === peer.entry.id) {
-        newCurrentPlayerIndex = newCurrentPlayerIndex % game.playerEntries.length;
-        game.milestone.currentPlayerPeerId = game.playerEntries[newCurrentPlayerIndex].id;
-        io.in("game").emit("setCurrentPlayerPeerId", game.milestone.currentPlayerPeerId);
-        resetPlayerTimeout();
-      }
-    }
-
-    io.in("game").emit("removePlayerEntry", peer.entry.id);
   });
 });
-
-function resetPlayerTimeout() {
-  if (game.playerTimeout != null) clearTimeout(game.playerTimeout);
-  game.playerTimeout = setTimeout(() => {
-    const newCurrentPlayerIndex = (game.playerEntries.findIndex(x => x.id === game.milestone.currentPlayerPeerId) + 1) % game.playerEntries.length;
-    game.milestone.currentPlayerPeerId = game.playerEntries[newCurrentPlayerIndex].id;
-    io.in("game").emit("setCurrentPlayerPeerId", game.milestone.currentPlayerPeerId);
-    resetPlayerTimeout();
-  }, constants.turnDuration);
-}
-
-
-function getRandomWord() {
-  return words[Math.floor(Math.random() * words.length)];
-}
-
-function endGame() {
-  if (game.playerTimeout != null) {
-    clearTimeout(game.playerTimeout);
-    game.playerTimeout = null;
-  }
-
-  const sortedPlayerEntries = game.playerEntries.slice(0).sort((a, b) => b.points - a.points);
-
-  game.milestone = {
-    name: "seating",
-    lastWord: game.word,
-    lastWinnerUsername: sortedPlayerEntries.length > 0 ? sortedPlayerEntries[0].username : ""
-  };
-
-  game.playerEntries.length = 0;
-  for (const peer of Object.values(game.peersById)) game.playerEntries.push(peer.entry);
-
-  io.in("game").emit("setMilestone", game.milestone);
-  io.in("game").emit("setPlayerEntries", game.playerEntries);
-}
 
 server.listen(4001);
 console.log(`XP_GAME_STARTED`);

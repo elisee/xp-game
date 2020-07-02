@@ -31,12 +31,6 @@
       font-family: "Arial", sans-serif;
     }
 
-    .loading,
-    .seating,
-    .round {
-      flex: 1;
-    }
-
     .loading {
       display: flex;
       align-items: center;
@@ -46,120 +40,6 @@
     .loading>div {
       font-size: 6em;
     }
-
-    .seating {
-      display: flex;
-      flex-flow: column;
-      font-size: 2em;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .seating>div {
-      padding: 0.5em;
-      text-align: center;
-    }
-
-    .seating button {
-      padding: 0.5em;
-    }
-    
-    .seating .lastWord, .seating .lastWinner {
-      text-transform: uppercase;
-    }
-
-    h1 {
-      font-weight: bold;
-    }
-
-    .round {
-      display: flex;
-      flex-flow: column;
-      font-size: 2em;
-    }
-
-    .round .alphabet {
-      padding: 1em;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-wrap: wrap;
-      text-transform: uppercase;
-    }
-
-    .round .alphabet > span {
-      padding: 0.5em;
-      border: 1px solid #777;
-      border-radius: 0.25em;
-      margin: 0.25em;
-    }
-
-    .round .alphabet .used {
-      background: #444;
-      color: #ddd;
-    }
-
-    .round .alphabet .notUsed {
-      background: #fff;
-    }
-
-    .round .maskedWordContainer {
-      flex: 1;
-      padding: 1em;
-      font-size: 1.5em;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .round .maskedWord {
-      text-align: center;
-      letter-spacing: 0.25em;
-      text-transform: uppercase;
-    }
-
-    .round .selfTurn,
-    .round .otherTurn {
-      padding: 1em;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .round .selfTurn input {
-      text-align: center;
-      padding: 1em;
-      text-transform: uppercase;
-    }
-
-    .scoreboard {
-      width: 300px;
-      background: #eee;
-      overflow-y: scroll;
-    }
-
-    .scoreboard>div {
-      padding: 0.5em;
-      border-bottom: 1px solid #aaa;
-    }
-
-    .scoreboard .currentPlayer {
-      background: #fa0;
-    }
-
-    .scoreboard .username {
-      font-weight: bold;
-    }
-
-    .scoreboard .correctLetters {
-      color: #4a6;
-      text-transform: uppercase;
-    }
-
-    .scoreboard .wrongLetters {
-      color: #f46;
-      text-transform: uppercase;
-    }
   </style>
 </head>
 
@@ -167,27 +47,8 @@
   <div class="loading">
     <div>Loading...</div>
   </div>
-  <div class="seating" hidden>
-    <h1>HANGMAN!</h1>
-    <div class="lastWordContainer">Last word was:<div class="lastWord"></div>
-    </div>
-    <div class="lastWinnerContainer">Last winner:<div class="lastWinner"></div>
-    </div>
-    <div>Waiting for host to start the game.</div>
-    <div class="host"><button>Start the game</button></div>
-  </div>
-  <div class="round" hidden>
-    <div class="alphabet"></div>
-    <div class="maskedWordContainer">
-      <div class="maskedWord"></div>
-    </div>
-    <form class="selfTurn" hidden><input type="text" minlength="1" maxlength="1" size="5" required></form>
-    <div class="otherTurn" hidden>
-      <div>It's <span class="username"></span>'s turn!</div>
-    </div>
-  </div>
-
-  <div class="scoreboard">
+  <div class="ingame" hidden>
+    You are ingame!
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
