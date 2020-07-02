@@ -157,8 +157,7 @@ function addEntity(entityId, entity) {
       const box = new THREE.BoxGeometry(1, 1, 1);
       box.applyMatrix4(new THREE.Matrix4().makeTranslation(0, 0.5, 0));
 
-      const color = new THREE.Color(0xffffff);
-      color.setHex(Math.random() * 0xffffff);
+      const color = new THREE.Color(0xffffff).setHex(entity.color);
       const material = new THREE.MeshBasicMaterial({ color });
 
       const entityObj = new THREE.Object3D();

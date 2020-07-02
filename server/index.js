@@ -109,7 +109,7 @@ io.on("connect", (socket) => {
       };
       world.nextEntityId++;
 
-      world.entitiesById[player.entityId] = entity = { type: "player", pos: [64, 66], nickname };
+      world.entitiesById[player.entityId] = entity = { type: "player", pos: [64, 66], nickname, color: Math.floor(Math.random() * 0xffffff) };
       game.playersByUserToken[userToken] = player;
 
       io.in("game").emit("addEntity", player.entityId, entity);
