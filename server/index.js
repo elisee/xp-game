@@ -105,11 +105,12 @@ io.on("connect", (socket) => {
 
       player = {
         worldName: "forster",
-        entityId: world.nextEntityId.toString()
+        entityId: world.nextEntityId.toString(),
+        lastShootTime: 0
       };
       world.nextEntityId++;
 
-      world.entitiesById[player.entityId] = entity = { type: "player", pos: [64, 66], nickname, color: Math.floor(Math.random() * 0xffffff) };
+      world.entitiesById[player.entityId] = entity = { type: "player", pos: [64, 66], angle: 0, nickname, color: Math.floor(Math.random() * 0xffffff) };
       game.playersByUserToken[userToken] = player;
 
       io.in("game").emit("addEntity", player.entityId, entity);
@@ -128,12 +129,29 @@ io.on("connect", (socket) => {
 
     socket.join("game");
 
-    socket.on("move", (x, z) => {
+    socket.on("move", (x, z, angle) => {
       if (!validate.finite(x, -100, 100)) return socket.disconnect(true);
       if (!validate.finite(z, -100, 100)) return socket.disconnect(true);
 
       entity.pos = [x, z];
-      io.in("game").emit("moveEntity", player.entityId, entity.pos);
+      entity.angle = angle;
+      io.in("game").emit("moveEntity", player.entityId, entity.pos, entity.angle);
+    });
+
+    socket.on("shoot", (angle) => {
+      if (!validate.finite(angle, -Math.PI, Math.PI)) return socket.disconnect(true);
+
+      if (Date.now() - player.lastShootTime < 500) return;
+      player.lastShootTime = Date.now();
+
+      entity.angle = angle;
+      io.in("game").emit("moveEntity", player.entityId, entity.pos, entity.angle);
+
+      const bulletEntityId = world.nextEntityId.toString();
+      world.nextEntityId++;
+
+      const bullet = world.entitiesById[bulletEntityId] = { type: "bullet", pos: entity.pos.slice(0), angle: entity.angle, shooterEntityId: player.entityId };
+      io.in("game").emit("addEntity", bulletEntityId, bullet);
     });
   });
 

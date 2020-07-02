@@ -23,6 +23,8 @@ let keyPresses = {};
 document.body.addEventListener("mousedown", (event) => {
   mouseButtons[event.button] = true;
   mousePresses[event.button] = true;
+
+  socket.emit("shoot", selfEntityObj.rotation.y);
 });
 
 document.body.addEventListener("mouseup", (event) => {
@@ -98,7 +100,7 @@ function animate() {
     move.normalize().multiplyScalar(speed);
 
     selfEntityObj.position.add(move);
-    socket.emit("move", selfEntityObj.position.x, selfEntityObj.position.z);
+    socket.emit("move", selfEntityObj.position.x, selfEntityObj.position.z, selfEntityObj.rotation.y);
   }
 
   keyPresses = {};
@@ -146,12 +148,14 @@ socket.on("addEntity", (entityId, entity) => {
   addEntity(entityId, entity);
 });
 
-socket.on("moveEntity", (entityId, pos) => {
+socket.on("moveEntity", (entityId, pos, angle) => {
   if (entityId === selfEntityId) return;
 
   const entity = selfWorld.entitiesById[entityId];
   entity.pos = pos;
+  entity.angle = angle;
   entityObjsById[entityId].position.set(entity.pos[0], 0, entity.pos[1]);
+  entityObjsById[entityId].rotation.y = angle;
 });
 
 function socket_joinGameCallback(data) {
@@ -183,11 +187,11 @@ function socket_joinGameCallback(data) {
 }
 
 const gunMaterial = new THREE.MeshBasicMaterial({ color: 0x443322 });
+const bulletMaterial = new THREE.MeshBasicMaterial({ color: 0x665533 });
 
 function addEntity(entityId, entity) {
   switch (entity.type) {
     case "player":
-
       const color = new THREE.Color(0xffffff).setHex(entity.color);
       const material = new THREE.MeshBasicMaterial({ color });
 
@@ -228,6 +232,15 @@ function addEntity(entityId, entity) {
 
       entityObjsById[entityId] = entityObj;
       if (entityId === selfEntityId) selfEntityObj = entityObj;
+
+      break;
+
+    case "bullet":
+      const bulletBox = new THREE.BoxGeometry(0.4, 0.2, 0.2);
+      const bulletEntityObj = new THREE.Mesh(bulletBox, bulletMaterial);
+      bulletEntityObj.position.set(entity.pos[0], 0, entity.pos[1]);
+      bulletEntityObj.rotation.y = entity.angle;
+      entitiesRoot.add(bulletEntityObj);
 
       break;
   }
