@@ -10,6 +10,8 @@ const bullets = [];
 let userToken;
 let nickname;
 
+let canMoveSelfEntity = true;
+
 // Input
 
 let mouseButtons = {};
@@ -95,19 +97,21 @@ function animate(time) {
   previousAnimateTime = time;
 
   // Input
-  const move = new THREE.Vector3();
-  if (keys.KeyW) move.z -= 1;
-  if (keys.KeyS) move.z += 1;
+  if (canMoveSelfEntity) {
+    const move = new THREE.Vector3();
+    if (keys.KeyW) move.z -= 1;
+    if (keys.KeyS) move.z += 1;
 
-  if (keys.KeyA) move.x -= 1;
-  if (keys.KeyD) move.x += 1;
+    if (keys.KeyA) move.x -= 1;
+    if (keys.KeyD) move.x += 1;
 
-  if (move.lengthSq() > 0) {
-    const speed = 0.005;
-    move.normalize().multiplyScalar(speed * elapsedTime);
+    if (move.lengthSq() > 0) {
+      const speed = 0.005;
+      move.normalize().multiplyScalar(speed * elapsedTime);
 
-    selfEntityObj.position.add(move);
-    socket.emit("move", selfEntityObj.position.x, selfEntityObj.position.z, selfEntityObj.rotation.y);
+      selfEntityObj.position.add(move);
+      socket.emit("move", selfEntityObj.position.x, selfEntityObj.position.z, selfEntityObj.rotation.y);
+    }
   }
 
   keyPresses = {};
@@ -178,13 +182,20 @@ socket.on("removeEntities", (entityIds) => {
 });
 
 socket.on("moveEntity", (entityId, pos, angle) => {
-  if (entityId === selfEntityId) return;
-
   const entity = selfWorld.entitiesById[entityId];
+  if (entityId === selfEntityId && entity.health > 0) return;
+
   entity.pos = pos;
   entity.angle = angle;
   entityObjsById[entityId].position.set(entity.pos[0], 0, entity.pos[1]);
   entityObjsById[entityId].rotation.y = angle;
+});
+
+socket.on("setEntityHealth", (entityId, health) => {
+  const entity = selfWorld.entitiesById[entityId];
+  entity.health = health;
+
+  if (selfEntityId === entityId) canMoveSelfEntity = entity.health > 0;
 });
 
 function socket_joinGameCallback(data) {
@@ -249,9 +260,7 @@ function addEntity(entityId, entity) {
       nameplateCtx.fillText(entity.nickname, nameplateCanvas.width / 2, nameplateCanvas.height / 2);
 
       const nameplateMap = new THREE.CanvasTexture(nameplateCanvas);
-
       const nameplateMaterial = new THREE.SpriteMaterial({ map: nameplateMap });
-
       const nameplateSprite = new THREE.Sprite(nameplateMaterial);
       nameplateSprite.scale.set(4, 1, 1);
       nameplateSprite.position.set(0, 2, 0);

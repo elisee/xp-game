@@ -18,6 +18,7 @@ const game = {
 
   playersByUserToken: {},
   worldsByName: {},
+  worldStatesByName: {},
 
   peersById: {},
   peersByUserToken: {}
@@ -29,6 +30,20 @@ if (fs.existsSync(worldsFolderPath)) {
 } else {
   initData();
   // saveData();
+}
+
+for (const [worldName, world] of Object.entries(game.worldsByName)) {
+  const worldState = game.worldStatesByName[worldName] = {
+    bulletEntities: [],
+    playerEntities: []
+  };
+
+  for (const entity of Object.values(world.entitiesById)) {
+    switch (entity.type) {
+      case "player": worldState.playerEntities.push(entity); break;
+      case "bullet": worldState.bulletEntities.push(entity); break;
+    }
+  }
 }
 
 function loadData() {
@@ -63,8 +78,8 @@ function initData() {
 
     let nextEntityId = 0;
     const entitiesById = {};
-    entitiesById[nextEntityId.toString()] = { type: "tree", pos: [Math.round(width / 2), Math.round(height / 2)] };
-    nextEntityId++;
+    /*entitiesById[nextEntityId.toString()] = { type: "tree", pos: [Math.round(width / 2), Math.round(height / 2)] };
+    nextEntityId++;*/
 
     const world = { width, height, tiles, entitiesById, nextEntityId };
     return world;
@@ -75,7 +90,6 @@ function initData() {
 
 
 const express = require("express");
-const { Socket } = require("dgram");
 
 const app = express();
 
@@ -90,6 +104,7 @@ let nextPeerId = 0;
 io.on("connect", (socket) => {
   let peer;
   let world;
+  let worldState;
 
   socket.on("joinGame", (userToken, nickname, callback) => {
     if (!validate.string(userToken, 16, 16)) return socket.disconnect(true);
@@ -103,6 +118,7 @@ io.on("connect", (socket) => {
 
     if (player == null) {
       world = game.worldsByName["forster"];
+      worldState = game.worldStatesByName["forster"];
 
       player = {
         worldName: "forster",
@@ -111,14 +127,26 @@ io.on("connect", (socket) => {
       };
       world.nextEntityId++;
 
-      world.entitiesById[player.entityId] = entity = { type: "player", pos: [64, 66], angle: 0, nickname, color: Math.floor(Math.random() * 0xffffff) };
+      world.entitiesById[player.entityId] = entity = {
+        id: player.entityId,
+        type: "player",
+        pos: [64, 66],
+        angle: 0,
+        nickname,
+        color: Math.floor(Math.random() * 0xffffff),
+        health: 5
+      };
+      worldState.playerEntities.push(entity);
+
       game.playersByUserToken[userToken] = player;
 
       io.in("game").emit("addEntity", player.entityId, entity);
     } else {
       world = game.worldsByName[player.worldName];
+      worldState = game.worldStatesByName[player.worldName];
       entity = world.entitiesById[player.entityId];
     }
+
 
     const entry = { id: nextPeerId++, nickname };
 
@@ -131,8 +159,9 @@ io.on("connect", (socket) => {
     socket.join("game");
 
     socket.on("move", (x, z, angle) => {
-      if (!validate.finite(x, -100, 100)) return socket.disconnect(true);
-      if (!validate.finite(z, -100, 100)) return socket.disconnect(true);
+      if (!validate.finite(x, 0, world.width)) return socket.disconnect(true);
+      if (!validate.finite(z, 0, world.height)) return socket.disconnect(true);
+      if (entity.health <= 0) return;
 
       entity.pos = [x, z];
       entity.angle = angle;
@@ -141,6 +170,7 @@ io.on("connect", (socket) => {
 
     socket.on("shoot", (angle) => {
       if (!validate.finite(angle, -Math.PI, Math.PI)) return socket.disconnect(true);
+      if (entity.health <= 0) return;
 
       if (Date.now() - player.lastShootTime < 500) return;
       player.lastShootTime = Date.now();
@@ -151,7 +181,8 @@ io.on("connect", (socket) => {
       const bulletEntityId = world.nextEntityId.toString();
       world.nextEntityId++;
 
-      const bullet = world.entitiesById[bulletEntityId] = {
+      const bulletEntity = world.entitiesById[bulletEntityId] = {
+        id: bulletEntityId,
         type: "bullet",
         pos: entity.pos.slice(0),
         angle: entity.angle,
@@ -159,7 +190,10 @@ io.on("connect", (socket) => {
         lifetime: 500,
         shooterEntityId: player.entityId
       };
-      io.in("game").emit("addEntity", bulletEntityId, bullet);
+
+      worldState.bulletEntities.push(bulletEntity);
+
+      io.in("game").emit("addEntity", bulletEntityId, bulletEntity);
     });
   });
 
@@ -178,29 +212,59 @@ function simulate() {
   const elapsedTime = newTime - previousSimulateTime;
   previousSimulateTime = newTime;
 
-  for (const world of Object.values(game.worldsByName)) {
+  for (const [worldName, world] of Object.entries(game.worldsByName)) {
+    const removedBulletEntities = new Set();
     const removedEntityIds = new Set();
+    const worldState = game.worldStatesByName[worldName];
 
-    for (const [entityId, entity] of Object.entries(world.entitiesById)) {
-      if (entity.type === "bullet") {
-        entity.lifetime -= elapsedTime;
-        if (entity.lifetime < 0) {
-          removedEntityIds.add(entityId);
-          continue;
+    for (const bulletEntity of worldState.bulletEntities) {
+      let bulletDestroyed = false;
+
+      bulletEntity.lifetime -= elapsedTime;
+      if (bulletEntity.lifetime < 0) {
+        bulletDestroyed = true;
+      } else {
+
+        bulletEntity.pos[0] += Math.cos(bulletEntity.angle) * bulletEntity.speed * elapsedTime;
+        bulletEntity.pos[1] -= Math.sin(bulletEntity.angle) * bulletEntity.speed * elapsedTime;
+
+        for (const playerEntity of worldState.playerEntities) {
+          if (playerEntity.health <= 0 || playerEntity.id === bulletEntity.shooterEntityId) continue;
+
+          const distance = Math.sqrt(
+            (playerEntity.pos[0] - bulletEntity.pos[0]) ** 2 +
+            (playerEntity.pos[1] - bulletEntity.pos[1]) ** 2);
+
+          if (distance < 1) {
+            bulletDestroyed = true;
+
+            playerEntity.health--;
+            io.in("game").emit("setEntityHealth", playerEntity.id, playerEntity.health);
+
+            if (playerEntity.health === 0) {
+              setTimeout(() => {
+                playerEntity.pos = [64, 64];
+                playerEntity.angle = 0;
+                playerEntity.health = 5;
+                io.in("game").emit("moveEntity", playerEntity.id, playerEntity.pos, playerEntity.angle);
+                io.in("game").emit("setEntityHealth", playerEntity.id, 5);
+              }, 1000);
+            }
+
+            break;
+          }
         }
+      }
 
-        entity.pos[0] += Math.cos(entity.angle) * entity.speed * elapsedTime;
-        entity.pos[1] -= Math.sin(entity.angle) * entity.speed * elapsedTime;
+      if (bulletDestroyed) {
+        delete world.entitiesById[bulletEntity.id];
+        removedEntityIds.add(bulletEntity.id);
+        removedBulletEntities.add(bulletEntity);
       }
     }
 
-    if (removedEntityIds.size > 0) {
-      for (const removedEntityId of removedEntityIds) {
-        delete world.entitiesById[removedEntityId];
-      }
-
-      io.in("game").emit("removeEntities", Array.from(removedEntityIds));
-    }
+    for (const bulletEntity of removedBulletEntities) worldState.bulletEntities.splice(worldState.bulletEntities.indexOf(bulletEntity), 1);
+    if (removedEntityIds.size > 0) io.in("game").emit("removeEntities", Array.from(removedEntityIds));
   }
 }
 
