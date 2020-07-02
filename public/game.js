@@ -179,12 +179,12 @@ function addEntity(entityId, entity) {
 
       const nameplateMap = new THREE.CanvasTexture(nameplateCanvas);
 
-      const nameplateGeometry = new THREE.PlaneGeometry(2, 0.5, 1, 1);
-      const nameplateMaterial = new THREE.MeshBasicMaterial({ map: nameplateMap });
+      const nameplateMaterial = new THREE.SpriteMaterial({ map: nameplateMap });
 
-      const nameplateMesh = new THREE.Mesh(nameplateGeometry, nameplateMaterial);
-      nameplateMesh.position.set(0, 2, 0);
-      entityObj.add(nameplateMesh);
+      const nameplateSprite = new THREE.Sprite(nameplateMaterial);
+      nameplateSprite.scale.set(4, 1, 1);
+      nameplateSprite.position.set(0, 2, 0);
+      entityObj.add(nameplateSprite);
 
       entitiesRoot.add(entityObj);
 
