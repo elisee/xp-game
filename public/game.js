@@ -3,6 +3,7 @@
 let selfPeerId = null;
 let selfWorld;
 let selfEntityId;
+let selfEntityObj;
 
 let userToken;
 let nickname;
@@ -21,12 +22,13 @@ const tileTypeMaterials = {
 }
 
 
-const mapObject = new THREE.Object3D();
-scene.add(mapObject);
+const mapRoot = new THREE.Object3D();
+scene.add(mapRoot);
+
+const entitiesRoot = new THREE.Object3D();
+scene.add(entitiesRoot);
 
 const camera = new THREE.PerspectiveCamera(70, 1, 0.1, 100);
-camera.position.y = 5;
-camera.position.z = 10;
 
 function animate() {
   requestAnimationFrame(animate);
@@ -37,6 +39,10 @@ function animate() {
   camera.updateProjectionMatrix();
 
   renderer.render(scene, camera);
+
+  if (selfEntityObj != null) {
+    camera.lookAt(selfEntityObj.position);
+  }
 }
 
 animate();
@@ -77,12 +83,35 @@ function socket_joinGameCallback(data) {
         const plane = new THREE.Mesh(geometry, material);
         plane.position.set(i, 0, j);
         plane.rotation.x = -Math.PI / 2;
-        mapObject.add(plane);
+        mapRoot.add(plane);
       }
     }
   }
 
   for (const [entityId, entity] of Object.entries(selfWorld.entitiesById)) {
+    switch (entity.type) {
+      case "player":
+        const box = new THREE.BoxGeometry(1, 1, 1);
+        box.applyMatrix4(new THREE.Matrix4().makeTranslation(0, 0.5, 0));
 
+        const color = new THREE.Color(0xffffff);
+        color.setHex(Math.random() * 0xffffff);
+        const material = new THREE.MeshBasicMaterial({ color });
+
+        const entityObj = new THREE.Mesh(box, material);
+        entityObj.position.set(entity.pos[0], 0, entity.pos[1]);
+        entitiesRoot.add(entityObj);
+
+        if (entityId === selfEntityId) selfEntityObj = entityObj;
+
+        break;
+    }
   }
+
+  const entity = selfWorld.entitiesById[selfEntityId];
+  const [selfX, selfZ] = entity.pos;
+
+  camera.position.x = selfEntityObj.position.x;
+  camera.position.y = 5;
+  camera.position.z = selfEntityObj.position.z + 5;
 }

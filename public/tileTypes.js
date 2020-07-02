@@ -1,3 +1,5 @@
+"use strict";
+
 const tileTypes = {
   empty: 0,
   dirt: 1,
