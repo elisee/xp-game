@@ -8,9 +8,29 @@ let selfEntityObj;
 let userToken;
 let nickname;
 
+// Input
+
+let keys = {};
+let keyPresses = {};
+
+document.body.addEventListener("keydown", (event) => {
+  // event.preventDefault();
+
+  keys[event.code] = true;
+  keyPresses[event.code] = true;
+});
+
+document.body.addEventListener("keyup", (event) => {
+  // event.preventDefault();
+
+  keys[event.code] = false;
+});
+
 // Render
-let canvasClientRect;
+
 const renderer = new THREE.WebGLRenderer({ canvas: $(".ingame canvas"), alpha: false });
+
+let canvasClientRect;
 
 const scene = new THREE.Scene();
 scene.add(new THREE.GridHelper(10, 10));
@@ -33,6 +53,24 @@ const camera = new THREE.PerspectiveCamera(70, 1, 0.1, 100);
 function animate() {
   requestAnimationFrame(animate);
 
+  // Input
+  const move = new THREE.Vector3();
+  if (keys.KeyW) move.z -= 1;
+  if (keys.KeyS) move.z += 1;
+
+  if (keys.KeyA) move.x -= 1;
+  if (keys.KeyD) move.x += 1;
+
+  if (move.lengthSq() > 0) {
+    const speed = 0.1;
+    move.normalize().multiplyScalar(speed);
+
+    camera.position.add(move);
+  }
+
+  keyPresses = {};
+
+  // Draw
   canvasClientRect = renderer.domElement.parentElement.getBoundingClientRect();
   renderer.setSize(canvasClientRect.width, canvasClientRect.height, false);
   camera.aspect = canvasClientRect.width / canvasClientRect.height;

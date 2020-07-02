@@ -62,7 +62,8 @@ function initData() {
 
     let nextEntityId = 0;
     const entitiesById = {};
-    entitiesById[nextEntityId++] = { type: "tree", pos: [Math.round(width / 2), Math.round(height / 2)] };
+    entitiesById[nextEntityId.toString()] = { type: "tree", pos: [Math.round(width / 2), Math.round(height / 2)] };
+    nextEntityId++;
 
     const world = { width, height, tiles, entitiesById, nextEntityId };
     return world;
@@ -103,8 +104,9 @@ io.on("connect", (socket) => {
 
       player = {
         worldName: "forster",
-        entityId: world.nextEntityId++
+        entityId: world.nextEntityId.toString()
       };
+      world.nextEntityId++;
 
       world.entitiesById[player.entityId] = entity = { type: "player", pos: [64, 66], nickname };
       game.playersByUserToken[userToken] = player;
