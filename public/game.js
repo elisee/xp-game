@@ -35,6 +35,7 @@ function socket_joinGameCallback(data) {
 }
 
 // Render
+let canvasClientRect;
 const renderer = new THREE.WebGLRenderer({ canvas: $(".ingame canvas"), alpha: false });
 
 const scene = new THREE.Scene();
