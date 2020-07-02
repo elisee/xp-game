@@ -1,6 +1,13 @@
 "use strict";
 
 exports.validate = {
+  finite: (value, min, max) => {
+    if (!Number.isFinite(value)) return false;
+    if (min != null && value < min) return false;
+    if (max != null && value > max) return false;
+    return true;
+  },
+
   integer: (value, min, max) => {
     if (!Number.isInteger(value)) return false;
     if (min != null && value < min) return false;

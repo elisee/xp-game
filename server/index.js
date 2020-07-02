@@ -49,6 +49,7 @@ function saveData() {
     fs.writeFileSync(path.join(worldsFolderPath, `${worldName}.json`), JSON.stringify(world, null, 2));
   }
 }
+
 function initData() {
   function makeWorld(width, height) {
     const tiles = [];
@@ -124,6 +125,14 @@ io.on("connect", (socket) => {
     callback({ selfPeerId: entry.id, world, entityId: player.entityId });
 
     socket.join("game");
+
+    socket.on("move", (x, z) => {
+      if (!validate.finite(x, -100, 100)) return socket.disconnect(true);
+      if (!validate.finite(z, -100, 100)) return socket.disconnect(true);
+
+      entity.pos = [x, z];
+      io.emit("moveEntity", player.entityId, entity.pos);
+    });
   });
 
   socket.on("disconnect", () => {

@@ -4,6 +4,7 @@ let selfPeerId = null;
 let selfWorld;
 let selfEntityId;
 let selfEntityObj;
+const entityObjsById = {};
 
 let userToken;
 let nickname;
@@ -65,7 +66,8 @@ function animate() {
     const speed = 0.1;
     move.normalize().multiplyScalar(speed);
 
-    camera.position.add(move);
+    selfEntityObj.position.add(move);
+    socket.emit("move", selfEntityObj.position.x, selfEntityObj.position.z);
   }
 
   keyPresses = {};
@@ -79,6 +81,10 @@ function animate() {
   renderer.render(scene, camera);
 
   if (selfEntityObj != null) {
+    camera.position.x = selfEntityObj.position.x;
+    camera.position.y = 10;
+    camera.position.z = selfEntityObj.position.z + 10;
+  
     camera.lookAt(selfEntityObj.position);
   }
 }
@@ -103,6 +109,14 @@ socket.on("disconnect", () => {
   document.body.textContent = "Disconnected.";
 })
 
+socket.on("moveEntity", (entityId, pos) => {
+  if (entityId === selfEntityId) return;
+
+  const entity = selfWorld.entitiesById[entityId];
+  entity.pos = pos;
+  entityObjsById[entityId].position.set(entity.pos[0], 0, entity.pos[1]);
+});
+
 function socket_joinGameCallback(data) {
   $hide(".loading");
   $show(".ingame");
@@ -126,30 +140,26 @@ function socket_joinGameCallback(data) {
     }
   }
 
-  for (const [entityId, entity] of Object.entries(selfWorld.entitiesById)) {
-    switch (entity.type) {
-      case "player":
-        const box = new THREE.BoxGeometry(1, 1, 1);
-        box.applyMatrix4(new THREE.Matrix4().makeTranslation(0, 0.5, 0));
+  for (const [entityId, entity] of Object.entries(selfWorld.entitiesById)) addEntity(entityId, entity);
+}
 
-        const color = new THREE.Color(0xffffff);
-        color.setHex(Math.random() * 0xffffff);
-        const material = new THREE.MeshBasicMaterial({ color });
+function addEntity(entityId, entity) {
+  switch (entity.type) {
+    case "player":
+      const box = new THREE.BoxGeometry(1, 1, 1);
+      box.applyMatrix4(new THREE.Matrix4().makeTranslation(0, 0.5, 0));
 
-        const entityObj = new THREE.Mesh(box, material);
-        entityObj.position.set(entity.pos[0], 0, entity.pos[1]);
-        entitiesRoot.add(entityObj);
+      const color = new THREE.Color(0xffffff);
+      color.setHex(Math.random() * 0xffffff);
+      const material = new THREE.MeshBasicMaterial({ color });
 
-        if (entityId === selfEntityId) selfEntityObj = entityObj;
+      const entityObj = new THREE.Mesh(box, material);
+      entityObj.position.set(entity.pos[0], 0, entity.pos[1]);
+      entitiesRoot.add(entityObj);
 
-        break;
-    }
+      entityObjsById[entityId] = entityObj;
+      if (entityId === selfEntityId) selfEntityObj = entityObj;
+
+      break;
   }
-
-  const entity = selfWorld.entitiesById[selfEntityId];
-  const [selfX, selfZ] = entity.pos;
-
-  camera.position.x = selfEntityObj.position.x;
-  camera.position.y = 5;
-  camera.position.z = selfEntityObj.position.z + 5;
 }
