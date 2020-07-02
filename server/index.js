@@ -112,7 +112,7 @@ io.on("connect", (socket) => {
       world.entitiesById[player.entityId] = entity = { type: "player", pos: [64, 66], nickname };
       game.playersByUserToken[userToken] = player;
 
-      io.emit("addEntity", player.entityId, entity);
+      io.in("game").emit("addEntity", player.entityId, entity);
     } else {
       world = game.worldsByName[player.worldName];
       entity = world.entitiesById[player.entityId];
@@ -133,7 +133,7 @@ io.on("connect", (socket) => {
       if (!validate.finite(z, -100, 100)) return socket.disconnect(true);
 
       entity.pos = [x, z];
-      io.emit("moveEntity", player.entityId, entity.pos);
+      io.in("game").emit("moveEntity", player.entityId, entity.pos);
     });
   });
 
