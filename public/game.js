@@ -6,7 +6,7 @@ let milestone = {
   name: "none"
 };
 
-let username;
+let nickname;
 
 // Network
 const socket = io({ reconnection: false, transports: ["websocket"] });
@@ -14,9 +14,9 @@ const socket = io({ reconnection: false, transports: ["websocket"] });
 window.addEventListener("message", (event) => {
   const actualEvent = JSON.parse(event.data);
 
-  if (actualEvent.name === "setUsername") {
-    username = actualEvent.username;
-    socket.emit("joinGame", actualEvent.username, socket_joinGameCallback);
+  if (actualEvent.name === "setNickname") {
+    nickname = actualEvent.nickname;
+    socket.emit("joinGame", actualEvent.nickname, socket_joinGameCallback);
   }
 });
 

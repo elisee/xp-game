@@ -32,11 +32,11 @@ io.on("connect", (socket) => {
   let peer;
   let world;
 
-  socket.on("joinGame", (username, callback) => {
-    if (!validate.string(username, 1, 30)) return socket.disconnect(true);
+  socket.on("joinGame", (nickname, callback) => {
+    if (!validate.string(nickname, 1, 30)) return socket.disconnect(true);
     if (!validate.function(callback)) return socket.disconnect(true);
 
-    const entry = { id: nextPeerId++, username };
+    const entry = { id: nextPeerId++, nickname };
 
     peer = { entry };
     game.peersById[entry.id] = peer;
