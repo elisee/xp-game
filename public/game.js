@@ -84,7 +84,7 @@ function animate() {
     camera.position.x = selfEntityObj.position.x;
     camera.position.y = 10;
     camera.position.z = selfEntityObj.position.z + 10;
-  
+
     camera.lookAt(selfEntityObj.position);
   }
 }
@@ -109,7 +109,10 @@ socket.on("disconnect", () => {
   document.body.textContent = "Disconnected.";
 })
 
-socket.on("addEntity", addEntity);
+socket.on("addEntity", (entityId, entity) => {
+  selfWorld.entitiesById[entityId] = entity;
+  addEntity(entityId, entity);
+});
 
 socket.on("moveEntity", (entityId, pos) => {
   if (entityId === selfEntityId) return;
