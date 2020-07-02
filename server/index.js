@@ -124,6 +124,8 @@ io.on("connect", (socket) => {
 
     callback({ selfPeerId: entry.id, world, entityId: player.entityId });
 
+    io.emit("addEntity", player.entityId, entity);
+
     socket.join("game");
 
     socket.on("move", (x, z) => {

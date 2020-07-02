@@ -109,6 +109,8 @@ socket.on("disconnect", () => {
   document.body.textContent = "Disconnected.";
 })
 
+socket.on("addEntity", addEntity);
+
 socket.on("moveEntity", (entityId, pos) => {
   if (entityId === selfEntityId) return;
 
