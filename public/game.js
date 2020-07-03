@@ -195,6 +195,8 @@ socket.on("setEntityHealth", (entityId, health) => {
   const entity = selfWorld.entitiesById[entityId];
   entity.health = health;
 
+  entityObjsById[entityId].visible = entity.health > 0;
+
   if (selfEntityId === entityId) canMoveSelfEntity = entity.health > 0;
 });
 
